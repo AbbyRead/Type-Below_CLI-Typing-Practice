@@ -1,0 +1,33 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Build artifacts
+*.o
+*.obj
+*.out
+*.exe
+*.elf
+*.gch
+
+# Build folders
+bin/
+obj/
+build/
+
+# Logs and temp files
+*.log
+*.tmp
+*~
+*.swp
+*.swo
+*.bak
+
+# IDE/project files
+.vscode/
+.idea/
+*.code-workspace
+*.xcworkspace/
+*.xcodeproj/
