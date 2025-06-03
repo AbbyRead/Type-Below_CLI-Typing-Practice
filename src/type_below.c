@@ -3,94 +3,124 @@
 #include <string.h>
 #include <ctype.h>
 
+#define INITIAL_CAPACITY 8192
 #define MAX_LINE_LEN 1024
 
-// Utility: Check if a string is numeric
-int is_numeric(const char *str) {
-    for (int i = 0; str[i]; ++i) {
-        if (!isdigit((unsigned char)str[i])) return 0;
+// Read entire stdin into dynamically allocated buffer
+char *read_all_stdin(void) {
+    size_t cap = INITIAL_CAPACITY;
+    size_t len = 0;
+    char *buffer = malloc(cap);
+    if (!buffer) return NULL;
+
+    int c;
+    while ((c = getchar()) != EOF) {
+        if (len + 1 >= cap) {
+            cap *= 2;
+            char *newbuf = realloc(buffer, cap);
+            if (!newbuf) {
+                free(buffer);
+                return NULL;
+            }
+            buffer = newbuf;
+        }
+        buffer[len++] = c;
     }
+
+    buffer[len] = '\0';  // Null-terminate
+    return buffer;
+}
+
+// Count total lines in the buffer
+int count_lines(const char *text) {
+    int lines = 0;
+    for (const char *p = text; *p; ++p) {
+        if (*p == '\n') lines++;
+    }
+    return lines;
+}
+
+// Split buffer into lines (modifies buffer in-place)
+char **split_lines(char *text, int *out_count) {
+    int lines = count_lines(text);
+    char **line_ptrs = malloc(sizeof(char*) * lines);
+    int count = 0;
+
+    char *line = strtok(text, "\n");
+    while (line) {
+        line_ptrs[count++] = line;
+        line = strtok(NULL, "\n");
+    }
+
+    *out_count = count;
+    return line_ptrs;
+}
+
+// Check if a string is numeric
+int is_numeric(const char *str) {
+    for (int i = 0; str[i]; ++i)
+        if (!isdigit((unsigned char)str[i])) return 0;
     return 1;
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 2 || argc > 3) {
-        fprintf(stderr, "Usage: %s filename.txt [start_line]\n", argv[0]);
+    int start_line = 1;
+
+    if (argc > 2 || (argc == 2 && !is_numeric(argv[1]) && strcmp(argv[1], "-") != 0)) {
+        fprintf(stderr, "Usage: %s [start_line]\n", argv[0]);
         return 1;
     }
 
-    FILE *file = fopen(argv[1], "r");
-    if (!file) {
-        perror("Error opening file");
+    if (argc == 2 && is_numeric(argv[1])) {
+        start_line = atoi(argv[1]);
+        if (start_line < 1) start_line = 1;
+    }
+
+    char *text = read_all_stdin();
+    if (!text) {
+        fprintf(stderr, "Failed to read input.\n");
         return 1;
     }
 
     int total_lines = 0;
-    char temp[MAX_LINE_LEN];
-
-    // First pass: count total lines
-    while (fgets(temp, sizeof(temp), file)) {
-        total_lines++;
+    char **lines = split_lines(text, &total_lines);
+    if (!lines) {
+        free(text);
+        fprintf(stderr, "Failed to parse lines.\n");
+        return 1;
     }
 
-    // Optional: starting line number
-    int start_line = 1;
-    if (argc == 3) {
-        if (!is_numeric(argv[2])) {
-            fprintf(stderr, "Invalid start_line: not a number\n");
-            fclose(file);
-            return 1;
-        }
-
-        start_line = atoi(argv[2]);
-        if (start_line < 1 || start_line > total_lines) {
-            fprintf(stderr, "Start line out of range (1 to %d)\n", total_lines);
-            fclose(file);
-            return 1;
-        }
+    if (start_line > total_lines) {
+        fprintf(stderr, "Start line out of range (1 to %d)\n", total_lines);
+        free(lines);
+        free(text);
+        return 1;
     }
 
-    // Rewind file and skip to start_line
-    rewind(file);
-    int file_line_number = 1;
-    while (file_line_number < start_line && fgets(temp, sizeof(temp), file)) {
-        file_line_number++;
+    FILE *tty = fopen("/dev/tty", "r");
+    if (!tty) {
+        perror("Cannot open /dev/tty for user input");
+        free(lines);
+        free(text);
+        return 1;
     }
 
-    char line[MAX_LINE_LEN];
     char input[MAX_LINE_LEN];
-    int current_line = start_line;
+    for (int i = start_line - 1; i < total_lines; ++i) {
+        if (lines[i][0] == '\0') continue;
 
-    while (fgets(line, sizeof(line), file)) {
-        // Remove trailing newline
-        line[strcspn(line, "\n")] = '\0';
+        printf("\n%s\n", lines[i]);
 
-        // Skip blank lines
-        if (line[0] == '\0') {
-            current_line++;
-            continue;
-        }
-
-        printf("\n%s\n", line);
-
-        if (!fgets(input, sizeof(input), stdin)) {
-            if (feof(stdin)) {
-                printf("\nEOF received. You left off at line %d.\n", current_line);
-                printf("\nTo continue from this point, use the command:\n%s %s %d\n", 
-                    argv[0], argv[1], current_line);
-            } else {
-                printf("\nInput error.\n");
-            }
+        if (!fgets(input, sizeof(input), tty)) {
+            printf("\nEOF or input error. You left off at line %d.\n", i + 1);
+            printf("To continue: pbpaste | %s %d\n", argv[0], i + 1);
             break;
         }
-
-        // Remove newline from input
-        input[strcspn(input, "\n")] = '\0';
-
-        current_line++;
+        input[strcspn(input, "\n")] = '\0';  // Trim newline
     }
 
-    fclose(file);
-    printf("%s", "\n");
+    fclose(tty);
+    free(lines);
+    free(text);
     return 0;
 }
