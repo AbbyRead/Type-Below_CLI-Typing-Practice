@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-	
+
 #define MAX_LINE_LEN 1024
 
 // Utility: Check if a string is numeric
@@ -14,52 +14,46 @@ int is_numeric(const char *str) {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 2 || argc > 3) {
-		fprintf(stderr, "Usage: %s filename.txt [start_line]\n", argv[0]);
-		return 1;
+	FILE *file = NULL;
+	int using_stdin = 0;
+
+	// Check for filename argument
+	if (argc < 2 || (argc == 2 && !is_numeric(argv[1]) && strcmp(argv[1], "-") == 0)) {
+		// No filename or "-" given: use stdin
+		file = stdin;
+		using_stdin = 1;
+	} else {
+		file = fopen(argv[1], "r");
+		if (!file) {
+			fprintf(stderr, "Error opening file '%s', falling back to stdin.\n", argv[1]);
+			file = stdin;
+			using_stdin = 1;
+		}
 	}
 
-	FILE *file = fopen(argv[1], "r");
-	if (!file) {
-		perror("Error opening file");
-		return 1;
-	}
-
-	int total_lines = 0;
-	char temp[MAX_LINE_LEN];
-
-	// First pass: count total lines
-	while (fgets(temp, sizeof(temp), file)) {
-		total_lines++;
-	}
-
-	// Optional: starting line number
 	int start_line = 1;
 	if (argc == 3) {
 		if (!is_numeric(argv[2])) {
 			fprintf(stderr, "Invalid start_line: not a number\n");
-			fclose(file);
+			if (!using_stdin) fclose(file);
 			return 1;
 		}
-
 		start_line = atoi(argv[2]);
-		if (start_line < 1 || start_line > total_lines) {
-			fprintf(stderr, "Start line out of range (1 to %d)\n", total_lines);
-			fclose(file);
+		if (start_line < 1) {
+			fprintf(stderr, "Start line must be >= 1\n");
+			if (!using_stdin) fclose(file);
 			return 1;
 		}
-	}
-
-	// Rewind file and skip to start_line
-	rewind(file);
-	int file_line_number = 1;
-	while (file_line_number < start_line && fgets(temp, sizeof(temp), file)) {
-		file_line_number++;
 	}
 
 	char line[MAX_LINE_LEN];
 	char input[MAX_LINE_LEN];
-	int current_line = start_line;
+	int current_line = 1;
+
+	// Skip lines if start_line > 1
+	while (current_line < start_line && fgets(line, sizeof(line), file)) {
+		current_line++;
+	}
 
 	while (fgets(line, sizeof(line), file)) {
 		// Remove trailing newline
@@ -76,8 +70,10 @@ int main(int argc, char *argv[]) {
 		if (!fgets(input, sizeof(input), stdin)) {
 			if (feof(stdin)) {
 				printf("\nEOF received. You left off at line %d.\n", current_line);
-				printf("\nTo continue from this point, use the command:\n%s %s %d\n", 
-					argv[0], argv[1], current_line);
+				if (!using_stdin) {
+					printf("\nTo continue from this point, use the command:\n%s %s %d\n",
+						argv[0], argv[1], current_line);
+				}
 			} else {
 				printf("\nInput error.\n");
 			}
@@ -90,7 +86,7 @@ int main(int argc, char *argv[]) {
 		current_line++;
 	}
 
-	fclose(file);
+	if (!using_stdin) fclose(file);
 	printf("%s", "\n");
 	return 0;
 }
