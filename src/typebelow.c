@@ -42,6 +42,7 @@ char *read_entire_stream(FILE *file) {
 }
 
 int echo_usage(const int argc, const char *prog_name) {
+	if (argc > 3) fprintf(stderr, "Too many arguments provided.\n");
 	fprintf(stderr, "Usage: %s <filename> [starting_line]\n", prog_name);
 	fprintf(stderr, "   Or: %s [starting_line]\n", prog_name);
 	fprintf(stderr, "   (if piping data into the program).\n");
@@ -64,7 +65,6 @@ int main(int argc, char *argv[]) {
 	FILE *file = NULL;
 	unsigned long starting_line = 1;
 	if (argc > 3) { // more than program name, filename, and starting line
-		fprintf(stderr, "Too many arguments provided.\n");
 		return echo_usage(argc, *argv);
 	}
 	// Deal with any piped in data as preferred over specifying a file
