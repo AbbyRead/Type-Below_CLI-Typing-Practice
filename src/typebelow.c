@@ -13,20 +13,32 @@
 #include <unistd.h>
 #endif
 
-char *read_entire_stream(FILE *file) {
-	size_t capacity = 4096;  // Start with 4KB, grow as needed
-	size_t length = 0;
-	char *buffer = malloc(capacity);
+int check_for_content(FILE *stream) {
+	// Check if the stream is empty
+	int c = fgetc(stream);
+	if (c == EOF) {
+		return 1; // Stream is empty
+	}
+	ungetc(c, stream); // Put the character back for further processing
+	return 0; // Stream has content
+}
+	
+
+char *read_entire_stream(FILE *file, size_t *capacity) {
+	*capacity = 4096;  // Start with 4KB, grow as needed
+	char *buffer = malloc(*capacity);
 	if (!buffer) {
 		fprintf(stderr, "Memory allocation failed.\n");
 		return NULL;
 	}
 
 	int c;
-	while ((c = fgetc(file)) != EOF) {
-		if (length + 1 >= capacity) {
-			capacity *= 2;
-			char *new_buffer = realloc(buffer, capacity);
+	size_t i = 0; // Index for the buffer
+	do {
+		c = fgetc(file);
+		if (i + 1 >= *capacity) {
+			*capacity += 4096; // Increase capacity by 4KB
+			char *new_buffer = realloc(buffer, *capacity);
 			if (!new_buffer) {
 				free(buffer);
 				fprintf(stderr, "Memory reallocation failed.\n");
@@ -34,19 +46,18 @@ char *read_entire_stream(FILE *file) {
 			}
 			buffer = new_buffer;
 		}
-		buffer[length++] = (char)c;
-	}
-
-	buffer[length] = '\0'; // Null-terminate
+		buffer[i] = (char)c;
+		i++;
+	} while (c != EOF);
+	buffer[i] = '\0'; // Null-terminate
 	return buffer;
 }
 
-int echo_usage(const int argc, const char *prog_name) {
+void echo_usage(const int argc, const char *prog_name) {
 	if (argc > 3) fprintf(stderr, "Too many arguments provided.\n");
 	fprintf(stderr, "Usage: %s <filename> [starting_line]\n", prog_name);
 	fprintf(stderr, "   Or: %s [starting_line]\n", prog_name);
 	fprintf(stderr, "   (if piping data into the program).\n");
-	return 1;
 }
 
 unsigned long validate_line_number(const char *line_number_str) {
@@ -65,7 +76,8 @@ int main(int argc, char *argv[]) {
 	FILE *file = NULL;
 	unsigned long starting_line = 1;
 	if (argc > 3) { // more than program name, filename, and starting line
-		return echo_usage(argc, *argv);
+		echo_usage(argc, *argv);
+		return 1;
 	}
 	// Deal with any piped in data as preferred over specifying a file
 	// Avoid using stdin if it is a terminal (tty) and no filename is provided
@@ -76,11 +88,17 @@ int main(int argc, char *argv[]) {
 				// fallthrough
 			case 1: // program name only
 				// No starting line specified, read from stdin
+				if (check_for_content(stdin)) {
+					fprintf(stderr, "No content provided via stdin.\n");
+					echo_usage(argc, *argv);
+					return 1;
+				}
 				file = stdin;
 				break;
 			default:
-				return echo_usage(argc, *argv); // End program with usage message
-		}
+				echo_usage(argc, *argv); // End program with usage message		
+				return 1;
+			}
 	} else { // If stdin is a terminal, we expect a filename to be used as input
 		switch (argc) {
 			case 2:
@@ -104,37 +122,55 @@ int main(int argc, char *argv[]) {
 				if (errno != 0 || *end != '\0' || starting_line < 1) {
 					fprintf(stderr, "Invalid starting line number: %s\n", argv[2]);
 					fclose(file);
-					return echo_usage(argc, *argv);
+					echo_usage(argc, *argv);
+					return 1;
 				}
 				break;
 		}
 	}
-
-	char *file_contents = read_entire_stream(file);
+	size_t capacity = 0;
+	char *file_contents = read_entire_stream(file, &capacity);
 	// Check if stream failed to copy
 	if (!file_contents) {
 		if (file != stdin) fclose(file);
 		printf("%s\n", "Unable to copy stream.");
 		return 1;
 	} 
-	// file_contents should now be a copy of the stream (from stdin or actual file)
-	// This is a dynamically-allocated buffer created from the read_entire_stream function.
+	// Close the file now that its contents have been copied
+	if (file != stdin) fclose(file);
 
 	char *line_start = file_contents;
 	char *newline_pos;
-	char input_buf[120]; // characters per line
+
+	// Open terminal input for user interaction, separate from piped stdin
+	FILE *user_input = fopen(
+	#ifdef _WIN32
+		"CON"
+	#else
+		"/dev/tty"
+	#endif
+	, "r");
+
+	if (!user_input) {
+		fprintf(stderr, "Could not open terminal for user input.\n");
+		free(file_contents);
+		return 1;
+	}
 
 	// while character search of file_contents does not return ending NULL
 	while ((newline_pos = strchr(line_start, '\n')) != NULL) {
 		*newline_pos = '\0'; // Temporarily insert a NULL to end on the end of line
 		printf("\n%s\n", line_start);  // Print one line from file_contents
-
-		// Wait for user to press Enter
-		if (!fgets(input_buf, sizeof(input_buf), stdin)) {
-			printf("\nInput error or EOF. Exiting.\n");
-			break;
+		char buffer[512];
+		if (!fgets(buffer, sizeof(buffer), stdin)) {
+			fprintf(stderr, "Error reading from user input: %s\n", strerror(errno));
+			fclose(user_input);
+			free(file_contents);
+			return 1;
 		}
+		buffer[strcspn(buffer, "\n")] = '\0';  // Strip newline
 
+		
 		*newline_pos = '\n';          // Restore newline character
 		line_start = newline_pos + 1; // Start on next line now
 	}
