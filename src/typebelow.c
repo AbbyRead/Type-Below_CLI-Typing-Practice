@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void echo_usage(const int argc, const char *prog_name) {
+void echo_usage(const char *prog_name) {
 	fprintf(stderr, "Usage: %s <filename> [starting_line]\n", prog_name);
 }
 
@@ -21,16 +21,16 @@ long validate_line_number(const char *line_number_str) {
 int main(int argc, char *argv[]) {
 	if (argc < 2) {
 		fprintf(stderr, "Expected a filename as input.\n");
-		echo_usage(argc, *argv);
+		echo_usage(*argv);
 		exit(EXIT_FAILURE);
 	}
 	if (argc > 3) {
 		fprintf(stderr, "Too many arguments provided.\n");
-		echo_usage(argc, *argv);
+		echo_usage(*argv);
 		exit(EXIT_FAILURE);
 	}
 	if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
-		echo_usage(argc, *argv);
+		echo_usage(*argv);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 		starting_line = validate_line_number(argv[2]);
 		if (starting_line == 0) {
 			fprintf(stderr, "Invalid starting line number: '%s'. It must be an integer.\n", argv[2]);
-			echo_usage(argc, *argv);
+			echo_usage(*argv);
 			exit(EXIT_FAILURE);
 		}
 		if (starting_line < 0) {
