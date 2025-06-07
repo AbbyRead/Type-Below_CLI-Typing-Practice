@@ -1,6 +1,7 @@
 # Compiler and flags
 CC = clang
 CFLAGS = -Wall -Wextra -O2 -Iinclude
+DEBUG_CFLAGS = -Wall -Wextra -O0 -g -Iinclude
 
 # Project structure
 SRC_DIR = src
@@ -14,6 +15,9 @@ EXES := $(patsubst $(SRC_DIR)/%.c, $(BIN_DIR)/%, $(SRCS))
 
 # Default rule
 all: $(BIN_DIR) $(OBJ_DIR) $(EXES)
+
+debug: CFLAGS = $(DEBUG_CFLAGS)
+debug: clean all
 
 # Compile each source to its own executable
 $(BIN_DIR)/%: $(OBJ_DIR)/%.o

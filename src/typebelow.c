@@ -56,8 +56,6 @@ char *read_entire_stream(FILE *file, size_t *capacity) {
 void echo_usage(const int argc, const char *prog_name) {
 	if (argc > 3) fprintf(stderr, "Too many arguments provided.\n");
 	fprintf(stderr, "Usage: %s <filename> [starting_line]\n", prog_name);
-	fprintf(stderr, "   Or: %s [starting_line]\n", prog_name);
-	fprintf(stderr, "   (if piping data into the program).\n");
 }
 
 unsigned long validate_line_number(const char *line_number_str) {
@@ -129,6 +127,10 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	size_t capacity = 0;
+	if (!file) {
+		echo_usage(argc, *argv);
+		return 1;
+	}
 	char *file_contents = read_entire_stream(file, &capacity);
 	// Check if stream failed to copy
 	if (!file_contents) {
