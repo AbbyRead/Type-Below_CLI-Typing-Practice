@@ -31,7 +31,6 @@ char *read_entire_stream(FILE *file, size_t *capacity) {
 		fprintf(stderr, "Memory allocation failed.\n");
 		return NULL;
 	}
-
 	int c;
 	size_t i = 0; // Index for the buffer
 	do {
@@ -63,7 +62,6 @@ unsigned long validate_line_number(const char *line_number_str) {
 	errno = 0; // Reset errno before strtoul
 	unsigned long line_number = strtoul(line_number_str, &end, 10);
 	if (errno != 0 || *end != '\0' || line_number < 1) {
-		fprintf(stderr, "Invalid starting line number: %s\n", line_number_str);
 		return 0;
 	}
 	return line_number;
@@ -73,64 +71,49 @@ unsigned long validate_line_number(const char *line_number_str) {
 int main(int argc, char *argv[]) {
 	FILE *file = NULL;
 	unsigned long starting_line = 1;
-	if (argc > 3) { // more than program name, filename, and starting line
+
+	if (argc > 3) {
 		echo_usage(argc, *argv);
 		return 1;
 	}
-	// Deal with any piped in data as preferred over specifying a file
-	// Avoid using stdin if it is a terminal (tty) and no filename is provided
-	if (!isatty(fileno(stdin))) {
-		switch (argc) {
-			case 2: // program name and starting line only
-				starting_line = validate_line_number(argv[1]);
-				// fallthrough
-			case 1: // program name only
-				// No starting line specified, read from stdin
-				if (check_for_content(stdin)) {
-					fprintf(stderr, "No content provided via stdin.\n");
-					echo_usage(argc, *argv);
-					return 1;
-				}
-				file = stdin;
-				break;
-			default:
-				echo_usage(argc, *argv); // End program with usage message		
-				return 1;
-			}
-	} else { // If stdin is a terminal, we expect a filename to be used as input
-		switch (argc) {
-			case 2:
-				// If only one argument is provided, treat it as a filename
-				file = fopen(argv[1], "r");
-				if (!file) {
-					fprintf(stderr, "Error opening file '%s': %s\n", argv[1], strerror(errno));
-					return 1;
-				}
-				break;
-			case 3:
-				// If two arguments are provided, treat the first as a filename and the second as a starting line
-				file = fopen(argv[1], "r");
-				if (!file) {
-					fprintf(stderr, "Error opening file '%s': %s\n", argv[1], strerror(errno));
-					return 1;
-				}
-				char *end;
-				errno = 0; // Reset errno before strtoul
-				starting_line = strtoul(argv[2], &end, 10);
-				if (errno != 0 || *end != '\0' || starting_line < 1) {
-					fprintf(stderr, "Invalid starting line number: %s\n", argv[2]);
-					fclose(file);
-					echo_usage(argc, *argv);
-					return 1;
-				}
-				break;
+
+	bool piped = !isatty(fileno(stdin));
+
+	if (piped) {
+		if (argc == 2) starting_line = validate_line_number(argv[1]);
+		if (starting_line == 0) {
+			fprintf(stderr, "Invalid starting line number: %s\n", argv[1]);
+			echo_usage(argc, *argv);
+			return 1;
+		}
+		if (check_for_content(stdin)) {
+			fprintf(stderr, "No content provided via stdin.\n");
+			echo_usage(argc, *argv);
+			return 1;
+		}
+		file = stdin;
+	} else {
+		// If not piped, check for a filename argument
+		if (argc < 2) {
+			fprintf(stderr, "Expected a filename as input.\n");
+			echo_usage(argc, *argv);
+			return 1;
+		}
+		file = fopen(argv[1], "r");
+		if (!file) {
+			fprintf(stderr, "Error opening file '%s': %s\n", argv[1], strerror(errno));
+			return 1;
+		}
+		if (argc == 3) {
+			starting_line = validate_line_number(argv[2]);
 		}
 	}
-	size_t capacity = 0;
-	if (!file) {
+	if (!file) { // If file is still NULL, it means we didn't open stdin or a file
 		echo_usage(argc, *argv);
 		return 1;
 	}
+
+	size_t capacity = 0;
 	char *file_contents = read_entire_stream(file, &capacity);
 	// Check if stream failed to copy
 	if (!file_contents) {
