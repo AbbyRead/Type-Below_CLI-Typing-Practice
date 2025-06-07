@@ -10,7 +10,7 @@ void echo_usage(const char *prog_name) {
 long validate_line_number(const char *line_number_str) {
 	char *end;
 	errno = 0; // Reset errno before strtoul
-	unsigned long line_number = strtoul(line_number_str, &end, 10);
+	long line_number = strtoul(line_number_str, &end, 10);
 	if (errno != 0 || *end != '\0') {
 		line_number = 0; // error value
 	}
@@ -40,7 +40,8 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	unsigned long starting_line = 1; // Default starting line is 1
+	long starting_line = 1; // Default starting line is 1
+	long lines = 0;
 	if (argc == 3) { // If a starting line is provided as the second argument
 		starting_line = validate_line_number(argv[2]);
 		if (starting_line == 0) {
@@ -49,17 +50,41 @@ int main(int argc, char *argv[]) {
 			exit(EXIT_FAILURE);
 		}
 		if (starting_line < 0) {
-			unsigned long c;
-			unsigned long last = '\n';
-			unsigned long lines = 0;
+			long c;
+			long last = '\n';
+			long lines = 0;
 			// Count lines in the file to know where to backtrack to from the end
 			fseek(file, 0, SEEK_END); // Move to the end of the file
 			while ((c = fgetc(file)) != EOF) {
 				if (c == '\n') lines++;
 				last = c;
 			}
+			if (starting_line > lines) {
+				fprintf(stderr, "Starting line number %lu exceeds total lines %lu in the file.\n", starting_line, lines);
+				fclose(file);
+				exit(EXIT_FAILURE);
+			}
+			fseek(file, 0, SEEK_SET); // Reset to the beginning of the file
+			lines = 0;
+			while ((c = fgetc(file)) != EOF) {
+				if (c == '\n') lines++;
+				if (lines == (starting_line + 1)) break; // Stop when we reach the desired line
+			}
+			if (c == EOF) {
+				fprintf(stderr, "Reached end of file before finding line %lu.\n", starting_line);
+				fclose(file);
+				exit(EXIT_FAILURE);
+			}
+			printf("%ld", lines);
 			if (last != '\n') lines++;  // Count the last line if it lacks newline
+			printf("Starting from line: %ld\n", lines + starting_line);
 			starting_line = lines + starting_line; // Convert negative to positive offset
+		}
+		printf("Total lines in file: %lu\n", lines);
+		if (lines == 0) {
+			fprintf(stderr, "The file is empty.\n");
+			fclose(file);
+			exit(EXIT_FAILURE);
 		}
 	}
 
