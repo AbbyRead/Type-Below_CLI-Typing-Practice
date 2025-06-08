@@ -7,12 +7,15 @@
 #define CHUNK_SIZE 4096
 
 #ifdef _WIN32
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
 #define USER_INPUT_DEVICE "CON"
 #else
+#include <unistd.h>
 #define USER_INPUT_DEVICE "/dev/tty"
 #endif
 
-// Operating mode enums: piped input or file input
 enum InputMode {
 	INPUT_MODE_FILE,
 	INPUT_MODE_PIPE
@@ -153,6 +156,10 @@ int main(int argc, char *argv[]) {
 
 	switch (mode) {
 		case INPUT_MODE_PIPE:
+			if (isatty(fileno(stdin))) {
+				fprintf(stderr, "Error: No piped-in text detected on stdin.\n");
+				return EXIT_FAILURE;
+			}
 			source_text = stdin;
 			printf("Input mode: Piped input (stdin)\n");
 			break;
