@@ -47,16 +47,16 @@ enum InputMode determine_input_mode(const char *file_arg) {
 	}
 }
 
-char *read_file_to_buffer(FILE *stream) {
-    if (!stream) exit(EXIT_FAILURE);
+char *copy_to_buffer(FILE *stream) {
+	if (!stream) exit(EXIT_FAILURE);
 
-    size_t bytes_available = CHUNK_SIZE;
-    size_t byte_count = 0;
+	size_t bytes_available = CHUNK_SIZE;
+	size_t byte_count = 0;
 	size_t i = 0;
-    char *buffer = malloc(bytes_available);
-    if (!buffer) exit(EXIT_FAILURE);
+	char *buffer = malloc(bytes_available);
+	if (!buffer) exit(EXIT_FAILURE);
 
-    while (!feof(stream) && !ferror(stream)) {
+	while (!feof(stream) && !ferror(stream)) {
 		buffer[i] = (char)getc(stream);
 		i++;
 		if (i == bytes_available) {
@@ -71,7 +71,7 @@ char *read_file_to_buffer(FILE *stream) {
 
 	buffer = realloc(buffer, byte_count);
 	if (!buffer) exit(EXIT_FAILURE);
-    return buffer;
+	return buffer;
 }
 
 int main(int argc, char *argv[]) {
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
 			break;
 	}
 	
-	char *buffer = read_file_to_buffer(source_text);
+	char *buffer = copy_to_buffer(source_text);
 
 	long starting_line = 1;
 	if (argc == 3) { // If a starting line is provided as the second argument
