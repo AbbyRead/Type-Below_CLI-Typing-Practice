@@ -90,7 +90,7 @@ long count_lines(const char *buffer) {
     return lines;
 }
 
-long validate_line_number(const char *buffer, const char *line_number_str) {
+long validate_line_number(const char *buffer, const char *line_number_str, const long total_lines) {
     errno = 0;
     char *endptr;
     long line_number = strtol(line_number_str, &endptr, 10);
@@ -100,19 +100,17 @@ long validate_line_number(const char *buffer, const char *line_number_str) {
         exit(EXIT_FAILURE);
     }
 
-    long lines_available = count_lines(buffer);
-
-    if (line_number > lines_available) {
+    if (line_number > total_lines) {
         printf("Starting line specified: %ld is greater than number of lines available: %ld.\n",
-               line_number, lines_available);
+               line_number, total_lines);
         exit(EXIT_FAILURE);
     }
     if (line_number < 0) {
-        line_number += lines_available;
+        line_number += total_lines;
         if (line_number < 1) {
             printf("%s\n", "Starting line offset from end is greater than the total number of lines.");
             printf("Total: %ld\tSpecified: %s\nWhich would evaluate as line %ld.\n",
-                   lines_available, line_number_str, line_number);
+                   total_lines, line_number_str, line_number);
             exit(EXIT_FAILURE);
         }
     }
@@ -165,9 +163,10 @@ int main(int argc, char *argv[]) {
     }
     fclose(source_text);
 
+	long total_lines = count_lines(buffer);
     long starting_line = 1;
     if (argc == 3) { // If a starting line is provided as the second argument
-        starting_line = validate_line_number(buffer, argv[2]);
+        starting_line = validate_line_number(buffer, argv[2], total_lines);
     }
 
     printf("Reading from '%s', starting from line %ld.\n", argv[1], starting_line);
@@ -183,7 +182,7 @@ int main(int argc, char *argv[]) {
             // Remove newline if present
             user_input[strcspn(user_input, "\n")] = '\0';
         } else {
-            perror("fgets failed");
+            perror("Program ended by user.");
             free(buffer);
             return EXIT_FAILURE;
         }
