@@ -99,6 +99,19 @@ long validate_line_number(const char *buffer, const char *line_number_str) {
 	return line_number;
 }
 
+int print_next_line(const char *buffer, long *offset) {
+	long i = *offset;
+	char c;
+	do {
+		c = buffer[i];
+		if (c == '\0') return 1;
+		putchar((int)c);
+		i++;
+	} while (c != '\n');
+	*offset = i;
+	return 0;
+}
+
 int main(int argc, char *argv[]) {
 	precheck_arguments(argc, argv);
 
@@ -136,10 +149,10 @@ int main(int argc, char *argv[]) {
 	}
 	printf("Reading from '%s', starting from line %ld.\n", argv[1], starting_line);
 
-	// Print the whole buffer for now to verify it's working
-	printf("%s\n", buffer);
-
-	// To Do: Implement line-by-line printing with user prompting.
-
+	long offset = 0;
+	while (!print_next_line(buffer, &offset)){
+		// Replace this part with an actual input routine:
+		printf("%s\n", "USER INPUT\n");
+	}
 	return 0;
 }
