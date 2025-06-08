@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
 		set_starting_offset(buffer, &offset, starting_line);
 	}
 
-	printf("Reading from '%s', starting from line %ld.\n", argv[1], starting_line);
+	printf("Reading from '%s', starting from line %ld of %ld.\n", argv[1], starting_line, total_lines);
 	long line = starting_line;
 	char user_input[1024];
 	while (line < total_lines + 1) {
