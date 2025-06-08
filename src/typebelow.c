@@ -22,7 +22,18 @@ enum InputMode {
 };
 
 void echo_usage(const char *prog_name) {
-	fprintf(stderr, "Usage: %s <filename> [starting_line]\n", prog_name);
+	fprintf(stderr,
+		"Usage:\n"
+		"  %s <filename> [starting_line]\n"
+		"  %s - [starting_line]\n\n"
+		"Options:\n"
+		"  -h, --help          Show this help message and exit.\n\n"
+		"Examples:\n"
+		"  %s myfile.txt            # Read from file starting at line 1\n"
+		"  %s myfile.txt 10         # Start at line 10\n"
+		"  cat myfile.txt | %s -    # Read from piped stdin\n"
+		"  cat myfile.txt | %s - -2 # Start 2 lines from end\n\n",
+		prog_name, prog_name, prog_name, prog_name, prog_name, prog_name);
 }
 
 void precheck_arguments(int argc, char *argv[]) {
