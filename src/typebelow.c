@@ -6,6 +6,12 @@
 #define STRING_MATCH 0
 #define CHUNK_SIZE 4096
 
+#ifdef _WIN32
+#define USER_INPUT_DEVICE "CON"
+#else
+#define USER_INPUT_DEVICE "/dev/tty"
+#endif
+
 // Operating mode enums: piped input or file input
 enum InputMode {
 	INPUT_MODE_FILE,
@@ -17,12 +23,12 @@ void echo_usage(const char *prog_name) {
 }
 
 void precheck_arguments(int argc, char *argv[]) {
-	if (argc < 2) { // At least one argument is required (the filename)
+	if (argc < 2) {
 		fprintf(stderr, "Expected a filename or '-' to specify source text.\n");
 		echo_usage(argv[0]);
 		exit(EXIT_FAILURE);
 	}
-	if (argc > 3) { // Allow at most two arguments: filename and optional starting line
+	if (argc > 3) {
 		fprintf(stderr, "Too many arguments provided.\n");
 		echo_usage(argv[0]);
 		exit(EXIT_FAILURE);
@@ -34,11 +40,7 @@ void precheck_arguments(int argc, char *argv[]) {
 }
 
 enum InputMode determine_input_mode(const char *file_arg) {
-	if (strcmp(file_arg, "-") == STRING_MATCH) {
-		return INPUT_MODE_PIPE;
-	} else {
-		return INPUT_MODE_FILE;
-	}
+	return strcmp(file_arg, "-") == STRING_MATCH ? INPUT_MODE_PIPE : INPUT_MODE_FILE;
 }
 
 char *copy_to_buffer(FILE *stream) {
@@ -109,7 +111,7 @@ long validate_line_number(const char *line_number_str, const long total_lines) {
 	if (line_number < 0) {
 		line_number += total_lines;
 		if (line_number < 1) {
-			printf("%s\n", "Starting line offset from end is greater than the total number of lines.");
+			printf("Starting line offset from end is greater than the total number of lines.\n");
 			printf("Total: %ld\tSpecified: %s\nWhich would evaluate as line %ld.\n",
 				   total_lines, line_number_str, line_number);
 			exit(EXIT_FAILURE);
@@ -123,12 +125,8 @@ void set_starting_offset(const char *buffer, unsigned long *offset, const long s
 	const char *substring = buffer + *offset;
 
 	while (remaining_searches > 0) {
-		// calculate pointer address difference as numerical offset
 		const char *newline = strchr(substring, '\n');
-		if (!newline) {
-			// No more lines to skip
-			break;
-		}
+		if (!newline) break;
 		*offset = (unsigned long)(newline - buffer + 1);
 		substring = newline + 1;
 		--remaining_searches;
@@ -150,10 +148,8 @@ int print_next_line(const char *buffer, unsigned long *offset) {
 int main(int argc, char *argv[]) {
 	precheck_arguments(argc, argv);
 
-	enum InputMode mode;
+	enum InputMode mode = determine_input_mode(argv[1]);
 	FILE *source_text = NULL;
-
-	mode = determine_input_mode(argv[1]);
 
 	switch (mode) {
 		case INPUT_MODE_PIPE:
@@ -181,10 +177,17 @@ int main(int argc, char *argv[]) {
 	}
 	fclose(source_text);
 
+	FILE *user_input_stream = fopen(USER_INPUT_DEVICE, "r");
+	if (!user_input_stream) {
+		fprintf(stderr, "Error: Could not open terminal for user input.\n");
+		free(buffer);
+		return EXIT_FAILURE;
+	}
+
 	long total_lines = count_lines(buffer);
 	long starting_line = 1;
 	unsigned long offset = 0;
-	if (argc == 3) { // If a starting line is provided as the second argument
+	if (argc == 3) {
 		starting_line = validate_line_number(argv[2], total_lines);
 		set_starting_offset(buffer, &offset, starting_line);
 	}
@@ -194,20 +197,22 @@ int main(int argc, char *argv[]) {
 	char user_input[1024];
 	while (line < total_lines + 1) {
 		print_next_line(buffer, &offset);
-		
-		if (fgets(user_input, sizeof(user_input), stdin)) {
-			// Remove newline if present
+
+		if (fgets(user_input, sizeof(user_input), user_input_stream)) {
 			user_input[strcspn(user_input, "\n")] = '\0';
 		} else {
 			printf("Program ended on line %ld of %ld\n", line, total_lines);
-			printf("%s\n", "To continue from this point next time use the command:");
+			printf("To continue from this point next time use the command:\n");
 			printf("%s %s %ld\n", argv[0], argv[1], line);
 			free(buffer);
+			fclose(user_input_stream);
 			return EXIT_FAILURE;
 		}
 		printf("\n");
 		line++;
 	}
+
 	free(buffer);
+	fclose(user_input_stream);
 	return 0;
 }
