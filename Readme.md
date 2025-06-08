@@ -1,4 +1,4 @@
-# TypeBelow: A Simple Typing Practice CLI Program
+# TypeBelow: A Simple, Terminal-Based Typing Practice Program
 
 ## Overview
 
