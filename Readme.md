@@ -1,7 +1,4 @@
 # TypeBelow
-Simple, Terminal-Based Typing Practice
-
-## Overview
 
 This program reads lines from a specified text file and shows them one by one in the terminal.  
 You follow along by typing each line and pressing Enter before continuing.
