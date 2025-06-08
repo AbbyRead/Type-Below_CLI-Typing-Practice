@@ -119,7 +119,7 @@ long validate_line_number(const char *buffer, const char *line_number_str) {
     return line_number;
 }
 
-int print_next_line(const char *buffer, long *offset) {
+int print_next_line(const char *buffer, unsigned long *offset) {
     if (*offset >= strlen(buffer)) return 1;
 
     const char *line_start = &buffer[*offset];
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
     printf("Reading from '%s', starting from line %ld.\n", argv[1], starting_line);
 
-    long offset = 0;
+    unsigned long offset = 0;
     for (long i = 1; i < starting_line; ++i) {
         if (print_next_line(buffer, &offset)) break;
     }
