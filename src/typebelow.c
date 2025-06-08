@@ -117,6 +117,23 @@ long validate_line_number(const char *line_number_str, const long total_lines) {
 	return line_number;
 }
 
+void set_starting_offset(const char *buffer, unsigned long *offset, const long starting_line) {
+	long remaining_searches = starting_line - 1;
+	const char *substring = buffer + *offset;
+
+	while (remaining_searches > 0) {
+		// calculate pointer address difference as numerical offset
+		const char *newline = strchr(substring, '\n');
+		if (!newline) {
+			// No more lines to skip
+			break;
+		}
+		*offset = (unsigned long)(newline - buffer + 1);
+		substring = newline + 1;
+		--remaining_searches;
+	}
+}
+
 int print_next_line(const char *buffer, unsigned long *offset) {
 	if (*offset >= strlen(buffer)) return 1;
 
@@ -165,12 +182,13 @@ int main(int argc, char *argv[]) {
 
 	long total_lines = count_lines(buffer);
 	long starting_line = 1;
+	unsigned long offset = 0;
 	if (argc == 3) { // If a starting line is provided as the second argument
 		starting_line = validate_line_number(argv[2], total_lines);
+		set_starting_offset(buffer, &offset, starting_line);
 	}
 
 	printf("Reading from '%s', starting from line %ld.\n", argv[1], starting_line);
-	unsigned long offset = 0;
 	long line = starting_line;
 	char user_input[1024];
 	while (line < total_lines + 1) {
