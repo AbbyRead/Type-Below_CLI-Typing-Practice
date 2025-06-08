@@ -91,9 +91,9 @@ char *copy_to_buffer(FILE *stream) {
 	char *final_buffer = realloc(buffer, byte_count + 1);
 	if (!final_buffer) {
 		perror("Failed to reallocate final memory");
-		free(buffer);
 		return NULL;
 	}
+
 	printf("Local buffer allocated bytes: %zu\n", byte_count + 1);
 
 	return final_buffer;
