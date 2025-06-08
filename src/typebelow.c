@@ -3,92 +3,118 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define STRING_MATCH 0
+#define CHUNK_SIZE 4096
+
+// Operating mode enums: piped input or file input
+enum InputMode {
+	INPUT_MODE_FILE,
+	INPUT_MODE_PIPE
+};
+
 void echo_usage(const char *prog_name) {
 	fprintf(stderr, "Usage: %s <filename> [starting_line]\n", prog_name);
 }
 
 long validate_line_number(const char *line_number_str) {
-	char *end;
-	errno = 0; // Reset errno before strtoul
-	long line_number = strtoul(line_number_str, &end, 10);
-	if (errno != 0 || *end != '\0') {
-		line_number = 0; // error value
-	}
+	long line_number = atol(line_number_str);
+	// To Do: make negative numbers backtrack from the end.
 	return line_number;
 }
 
-// Main function to read a file or stdin and print lines one by one
-int main(int argc, char *argv[]) {
-	if (argc < 2) {
-		fprintf(stderr, "Expected a filename as input.\n");
+void precheck_arguments(int argc, char *argv[]) {
+	if (argc < 2) { // At least one argument is required (the filename)
+		fprintf(stderr, "Expected a filename or '-' to specify source text.\n");
 		echo_usage(*argv);
 		exit(EXIT_FAILURE);
 	}
-	if (argc > 3) {
+	if (argc > 3) { // Allow at most two arguments: filename and optional starting line
 		fprintf(stderr, "Too many arguments provided.\n");
 		echo_usage(*argv);
 		exit(EXIT_FAILURE);
 	}
-	if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
+	if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == STRING_MATCH) {
 		echo_usage(*argv);
 		exit(EXIT_SUCCESS);
 	}
+}
 
-	FILE *file = fopen(argv[1], "r");
-	if (!file) {
-		fprintf(stderr, "Error opening file '%s': %s\n", argv[1], strerror(errno));
-		exit(EXIT_FAILURE);
+enum InputMode determine_input_mode(const char *file_arg) {
+	if (strcmp(file_arg, "-") == STRING_MATCH) {
+		return INPUT_MODE_PIPE;
+	} else {
+		return INPUT_MODE_FILE;
 	}
+}
 
-	long starting_line = 1; // Default starting line is 1
-	long lines = 0;
-	if (argc == 3) { // If a starting line is provided as the second argument
-		starting_line = validate_line_number(argv[2]);
-		if (starting_line == 0) {
-			fprintf(stderr, "Invalid starting line number: '%s'. It must be an integer.\n", argv[2]);
+char *read_file_to_buffer(FILE *stream) {
+    if (!stream) exit(EXIT_FAILURE);
+
+    size_t bytes_available = CHUNK_SIZE;
+    size_t byte_count = 0;
+	size_t i = 0;
+    char *buffer = malloc(bytes_available);
+    if (!buffer) exit(EXIT_FAILURE);
+
+    while (!feof(stream) && !ferror(stream)) {
+		buffer[i] = (char)getc(stream);
+		i++;
+		if (i == bytes_available) {
+			bytes_available += CHUNK_SIZE;
+			buffer = realloc(buffer, bytes_available);
+			if (!buffer) exit(EXIT_FAILURE);
+		}
+	}
+	buffer[i - 1] = '\0';
+	byte_count = i;
+	printf("%x\n", buffer[i]);
+
+	buffer = realloc(buffer, byte_count);
+	if (!buffer) exit(EXIT_FAILURE);
+    return buffer;
+}
+
+int main(int argc, char *argv[]) {
+	precheck_arguments(argc, argv);
+
+	enum InputMode mode;
+	FILE *source_text = NULL;
+	mode = determine_input_mode(argv[1]);
+
+	switch (mode) {
+		case INPUT_MODE_PIPE:
+			printf("Reading from stdin...\n");
+			source_text = stdin;
+			printf("Input mode: Piped input (stdin)\n");
+			break;
+		case INPUT_MODE_FILE: 
+			printf("Reading from file...\n");
+			source_text = fopen(argv[1], "r");
+			if (!source_text) {
+				fprintf(stderr, "Error opening file '%s': %s\n", argv[1], strerror(errno));
+				exit(EXIT_FAILURE);
+			}
+			printf("Input mode: File\n");
+			break;
+		default:
+			fprintf(stderr, "Unknown input mode.\n");
 			echo_usage(*argv);
 			exit(EXIT_FAILURE);
-		}
-		if (starting_line < 0) {
-			long c;
-			long last = '\n';
-			long lines = 0;
-			// Count lines in the file to know where to backtrack to from the end
-			fseek(file, 0, SEEK_END); // Move to the end of the file
-			while ((c = fgetc(file)) != EOF) {
-				if (c == '\n') lines++;
-				last = c;
-			}
-			if (starting_line > lines) {
-				fprintf(stderr, "Starting line number %lu exceeds total lines %lu in the file.\n", starting_line, lines);
-				fclose(file);
-				exit(EXIT_FAILURE);
-			}
-			fseek(file, 0, SEEK_SET); // Reset to the beginning of the file
-			lines = 0;
-			while ((c = fgetc(file)) != EOF) {
-				if (c == '\n') lines++;
-				if (lines == (starting_line + 1)) break; // Stop when we reach the desired line
-			}
-			if (c == EOF) {
-				fprintf(stderr, "Reached end of file before finding line %lu.\n", starting_line);
-				fclose(file);
-				exit(EXIT_FAILURE);
-			}
-			printf("%ld", lines);
-			if (last != '\n') lines++;  // Count the last line if it lacks newline
-			printf("Starting from line: %ld\n", lines + starting_line);
-			starting_line = lines + starting_line; // Convert negative to positive offset
-		}
-		printf("Total lines in file: %lu\n", lines);
-		if (lines == 0) {
-			fprintf(stderr, "The file is empty.\n");
-			fclose(file);
-			exit(EXIT_FAILURE);
-		}
+			break;
 	}
+	
+	char *buffer = read_file_to_buffer(source_text);
 
-	printf("Reading from file: %s, starting from line: %ld\n", argv[1], starting_line);
+	long starting_line = 1;
+	if (argc == 3) { // If a starting line is provided as the second argument
+		starting_line = validate_line_number(argv[2]);
+	}
+	printf("Reading from '%s', starting from line %ld.\n", argv[1], starting_line);
+
+	// Print the whole buffer for now to verify it's working
+	printf("%s\n", buffer);
+
+	// To Do: Implement line-by-line printing with user prompting.
 
 	return 0;
 }
