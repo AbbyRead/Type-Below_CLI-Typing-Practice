@@ -151,8 +151,15 @@ int main(int argc, char *argv[]) {
 
 	long offset = 0;
 	while (!print_next_line(buffer, &offset)){
-		// Replace this part with an actual input routine:
-		printf("%s\n", "USER INPUT\n");
+		char user_input[1024];
+		if (fgets(user_input, sizeof(user_input), stdin)) {
+			// Remove newline if present
+			user_input[strcspn(user_input, "\n")] = '\0';
+		} else {
+			perror("fgets failed");
+			exit(EXIT_FAILURE);
+		}
+		printf("\n");
 	}
 	return 0;
 }
