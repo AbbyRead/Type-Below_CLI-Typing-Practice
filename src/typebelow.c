@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define PROGRAM_VERSION "1.0.0"
+
 #define STRING_MATCH 0
 #define CHUNK_SIZE 4096
 
@@ -38,8 +40,8 @@ void echo_usage(const char *prog_name) {
 
 void precheck_arguments(int argc, char *argv[]) {
 	if (argc < 2) {
-		fprintf(stderr, "Expected a filename or '-' to specify source text.\n");
-		echo_usage(argv[0]);
+		fprintf(stderr, "Error: Missing filename or '-'.\n");
+		fprintf(stderr, "Tip: Try '%s --help' for usage info.\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 	if (argc > 3) {
@@ -47,8 +49,12 @@ void precheck_arguments(int argc, char *argv[]) {
 		echo_usage(argv[0]);
 		exit(EXIT_FAILURE);
 	}
-	if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == STRING_MATCH) {
+	if (strcmp(argv[1], "--help") == STRING_MATCH || strcmp(argv[1], "-h") == STRING_MATCH) {
 		echo_usage(argv[0]);
+		exit(EXIT_SUCCESS);
+	}
+	if (strcmp(argv[1], "--version") == STRING_MATCH || strcmp(argv[1], "-v") == STRING_MATCH) {
+		printf("TypeBelow: Version %s\n", PROGRAM_VERSION);
 		exit(EXIT_SUCCESS);
 	}
 }
