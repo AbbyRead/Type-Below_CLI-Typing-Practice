@@ -1,4 +1,5 @@
-# TypeBelow: A Simple, Terminal-Based Typing Practice Program
+# TypeBelow
+Simple, Terminal-Based Typing Practice
 
 ## Overview
 
