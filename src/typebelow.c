@@ -147,16 +147,16 @@ void set_starting_offset(const char *buffer, unsigned long *offset, const long s
 	}
 }
 
-int print_next_line(const char *buffer, unsigned long *offset) {
-	if (*offset >= strlen(buffer)) return 1;
+int print_next_line(const char *buffer, unsigned long *offset, size_t buffer_length) {
+	if (*offset >= buffer_length) return 1;
 
 	const char *line_start = &buffer[*offset];
 	const char *newline_pos = strchr(line_start, '\n');
-	size_t line_length = newline_pos ? (newline_pos - line_start + 1) : strlen(line_start);
+	size_t line_length = newline_pos ? (newline_pos - line_start + 1) : (buffer_length - *offset);
 
 	fwrite(line_start, 1, line_length, stdout);
 	*offset += line_length;
-	return (*offset >= strlen(buffer));
+	return (*offset >= buffer_length);
 }
 
 int main(int argc, char *argv[]) {
@@ -213,8 +213,9 @@ int main(int argc, char *argv[]) {
 	printf("Reading from '%s', starting from line %ld of %ld.\n", argv[1], starting_line, total_lines);
 	long line = starting_line;
 	char user_input[1024];
+	size_t buffer_length = strlen(buffer);
 	while (line < total_lines + 1) {
-		print_next_line(buffer, &offset);
+		print_next_line(buffer, &offset, buffer_length);
 
 		if (fgets(user_input, sizeof(user_input), user_input_stream)) {
 			user_input[strcspn(user_input, "\n")] = '\0';
