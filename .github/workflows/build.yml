@@ -9,11 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install LLVM (includes lld)
-        run: brew install llvm
+      - name: Install dependencies
+        run: |
+          brew install llvm
 
-      - name: Add LLVM to PATH
-        run: echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
-
-      - name: Build the project
-        run: make
+      - name: Build the project without -fuse-ld=lld
+        run: |
+          make WIN_LDFLAGS="$(echo $(make WIN_LDFLAGS) | sed 's/-fuse-ld=lld//g')"
