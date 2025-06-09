@@ -15,4 +15,4 @@ jobs:
 
       - name: Build the project without -fuse-ld=lld
         run: |
-          make WIN_LDFLAGS="$(echo $(make WIN_LDFLAGS) | sed 's/-fuse-ld=lld//g')"
+          make WIN_LDFLAGS="$(echo "$(make WIN_LDFLAGS)" | sed 's/-fuse-ld=lld//g')"
