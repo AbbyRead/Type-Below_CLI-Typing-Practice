@@ -7,17 +7,20 @@ DEBUG_CFLAGS = -Wall -Wextra -O0 -g -Iinclude -arch x86_64 -arch arm64
 DEBUG_LDFLAGS = -arch x86_64 -arch arm64
 
 # === Cross-compilation setup (Windows) ===
+# Default cross-compiler for Windows targets
 WIN_CC = clang
+# ARM64 Windows build will use llvm-mingw's toolchain directly
+WIN_CC_ARM64 = $(HOME)/toolchains/llvm-mingw/bin/aarch64-w64-mingw32-clang
 
 # Toolchain roots for each architecture
 MINGW_ROOT_X86_64 = /opt/homebrew/opt/mingw-w64/toolchain-x86_64
-MINGW_ROOT_I686 = /opt/homebrew/opt/mingw-w64/toolchain-i686
-MINGW_ROOT_ARM64 = /opt/homebrew/opt/mingw-w64/toolchain-arm64
+MINGW_ROOT_I686   = /opt/homebrew/opt/mingw-w64/toolchain-i686
+MINGW_ROOT_ARM64  = $(HOME)/toolchains/llvm-mingw
 
 # Targets per architecture
 WIN_TARGET_X86_64 = x86_64-w64-windows-gnu
-WIN_TARGET_I686 = i686-w64-windows-gnu
-WIN_TARGET_ARM64 = aarch64-w64-windows-gnu
+WIN_TARGET_I686   = i686-w64-windows-gnu
+WIN_TARGET_ARM64  = aarch64-w64-windows-gnu
 
 # CFLAGS per arch
 WIN_CFLAGS_X86_64 = \
@@ -34,8 +37,6 @@ WIN_CFLAGS_I686 = \
 
 WIN_CFLAGS_ARM64 = \
 	--target=$(WIN_TARGET_ARM64) \
-	-isystem $(MINGW_ROOT_ARM64)/aarch64-w64-mingw32/include \
-	-D__USE_MINGW_ANSI_STDIO=1 \
 	-Iinclude
 
 # LDFLAGS per arch
@@ -50,8 +51,6 @@ WIN_LDFLAGS_I686 = \
 	-Wl,--entry=mainCRTStartup -Wl,--subsystem,console
 
 WIN_LDFLAGS_ARM64 = \
-	-L$(MINGW_ROOT_ARM64)/aarch64-w64-mingw32/lib \
-	-L$(MINGW_ROOT_ARM64)/lib/gcc/aarch64-w64-mingw32/15.1.0 \
 	-Wl,--entry=mainCRTStartup -Wl,--subsystem,console
 
 # === Project structure ===
@@ -66,8 +65,8 @@ OBJS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
 # Directories for each Windows arch output
 WIN_BIN_X86_64 = $(WIN_BIN_DIR)/x86_64
-WIN_BIN_I686 = $(WIN_BIN_DIR)/win32
-WIN_BIN_ARM64 = $(WIN_BIN_DIR)/arm64
+WIN_BIN_I686   = $(WIN_BIN_DIR)/win32
+WIN_BIN_ARM64  = $(WIN_BIN_DIR)/arm64
 
 # === Default target ===
 all: $(BIN_DIR) $(OBJ_DIR) $(patsubst $(SRC_DIR)/%.c, $(BIN_DIR)/%, $(SRCS))
@@ -77,15 +76,19 @@ debug: LDFLAGS = $(DEBUG_LDFLAGS)
 debug: clean all
 
 windows: $(WIN_BIN_X86_64) $(WIN_BIN_I686) $(WIN_BIN_ARM64)
-	$(MAKE) windows-build WIN_CFLAGS="$(WIN_CFLAGS_X86_64)" WIN_LDFLAGS="$(WIN_LDFLAGS_X86_64)" WIN_TARGET="$(WIN_TARGET_X86_64)" WIN_BIN_ARCH=$(WIN_BIN_X86_64)
-	$(MAKE) windows-build WIN_CFLAGS="$(WIN_CFLAGS_I686)" WIN_LDFLAGS="$(WIN_LDFLAGS_I686)" WIN_TARGET="$(WIN_TARGET_I686)" WIN_BIN_ARCH=$(WIN_BIN_I686)
-	$(MAKE) windows-build WIN_CFLAGS="$(WIN_CFLAGS_ARM64)" WIN_LDFLAGS="$(WIN_LDFLAGS_ARM64)" WIN_TARGET="$(WIN_TARGET_ARM64)" WIN_BIN_ARCH=$(WIN_BIN_ARM64)
+	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_X86_64)" WIN_LDFLAGS="$(WIN_LDFLAGS_X86_64)" WIN_TARGET="$(WIN_TARGET_X86_64)" WIN_BIN_ARCH=$(WIN_BIN_X86_64)
+	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_I686)" WIN_LDFLAGS="$(WIN_LDFLAGS_I686)" WIN_TARGET="$(WIN_TARGET_I686)" WIN_BIN_ARCH=$(WIN_BIN_I686)
+	$(MAKE) windows-build WIN_CC=$(WIN_CC_ARM64) WIN_CFLAGS="$(WIN_CFLAGS_ARM64)" WIN_LDFLAGS="$(WIN_LDFLAGS_ARM64)" WIN_TARGET="$(WIN_TARGET_ARM64)" WIN_BIN_ARCH=$(WIN_BIN_ARM64)
 
 windows-build: $(SRCS)
 	@for src in $^; do \
 		name=$$(basename $$src .c); \
 		echo "Building $$name.exe for $(WIN_TARGET)"; \
-		$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -lgcc -lgcc_eh -o $(WIN_BIN_ARCH)/$$name.exe $$src; \
+		if [ "$(WIN_TARGET)" = "aarch64-w64-windows-gnu" ]; then \
+			$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -o $(WIN_BIN_ARCH)/$$name.exe $$src; \
+		else \
+			$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -lgcc -lgcc_eh -o $(WIN_BIN_ARCH)/$$name.exe $$src; \
+		fi \
 	done
 
 # === Build rules ===
