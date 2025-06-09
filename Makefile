@@ -8,19 +8,51 @@ DEBUG_LDFLAGS = -arch x86_64 -arch arm64
 
 # === Cross-compilation setup (Windows) ===
 WIN_CC = clang
-WIN_TARGET = x86_64-w64-windows-gnu
-MINGW_ROOT = /opt/homebrew/opt/mingw-w64/toolchain-x86_64
 
-WIN_CFLAGS = \
-	--target=$(WIN_TARGET) \
-	-isystem $(MINGW_ROOT)/x86_64-w64-mingw32/include \
+# Toolchain roots for each architecture
+MINGW_ROOT_X86_64 = /opt/homebrew/opt/mingw-w64/toolchain-x86_64
+MINGW_ROOT_I686 = /opt/homebrew/opt/mingw-w64/toolchain-i686
+MINGW_ROOT_ARM64 = /opt/homebrew/opt/mingw-w64/toolchain-arm64
+
+# Targets per architecture
+WIN_TARGET_X86_64 = x86_64-w64-windows-gnu
+WIN_TARGET_I686 = i686-w64-windows-gnu
+WIN_TARGET_ARM64 = aarch64-w64-windows-gnu
+
+# CFLAGS per arch
+WIN_CFLAGS_X86_64 = \
+	--target=$(WIN_TARGET_X86_64) \
+	-isystem $(MINGW_ROOT_X86_64)/x86_64-w64-mingw32/include \
 	-D__USE_MINGW_ANSI_STDIO=1 \
 	-Iinclude
 
-WIN_LDFLAGS = \
-  -L/opt/homebrew/opt/mingw-w64/toolchain-x86_64/x86_64-w64-mingw32/lib \
-  -L/opt/homebrew/opt/mingw-w64/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/15.1.0 \
-  -Wl,--entry=mainCRTStartup -Wl,--subsystem,console
+WIN_CFLAGS_I686 = \
+	--target=$(WIN_TARGET_I686) \
+	-isystem $(MINGW_ROOT_I686)/i686-w64-mingw32/include \
+	-D__USE_MINGW_ANSI_STDIO=1 \
+	-Iinclude
+
+WIN_CFLAGS_ARM64 = \
+	--target=$(WIN_TARGET_ARM64) \
+	-isystem $(MINGW_ROOT_ARM64)/aarch64-w64-mingw32/include \
+	-D__USE_MINGW_ANSI_STDIO=1 \
+	-Iinclude
+
+# LDFLAGS per arch
+WIN_LDFLAGS_X86_64 = \
+	-L$(MINGW_ROOT_X86_64)/x86_64-w64-mingw32/lib \
+	-L$(MINGW_ROOT_X86_64)/lib/gcc/x86_64-w64-mingw32/15.1.0 \
+	-Wl,--entry=mainCRTStartup -Wl,--subsystem,console
+
+WIN_LDFLAGS_I686 = \
+	-L$(MINGW_ROOT_I686)/i686-w64-mingw32/lib \
+	-L$(MINGW_ROOT_I686)/lib/gcc/i686-w64-mingw32/15.1.0 \
+	-Wl,--entry=mainCRTStartup -Wl,--subsystem,console
+
+WIN_LDFLAGS_ARM64 = \
+	-L$(MINGW_ROOT_ARM64)/aarch64-w64-mingw32/lib \
+	-L$(MINGW_ROOT_ARM64)/lib/gcc/aarch64-w64-mingw32/15.1.0 \
+	-Wl,--entry=mainCRTStartup -Wl,--subsystem,console
 
 # === Project structure ===
 SRC_DIR = src
@@ -31,17 +63,30 @@ WIN_BIN_DIR = $(BIN_DIR)/windows
 # === Source and binary derivations ===
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 OBJS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
-EXES := $(patsubst $(SRC_DIR)/%.c, $(BIN_DIR)/%, $(SRCS))
-WIN_EXES := $(patsubst $(SRC_DIR)/%.c, $(WIN_BIN_DIR)/%.exe, $(SRCS))
+
+# Directories for each Windows arch output
+WIN_BIN_X86_64 = $(WIN_BIN_DIR)/x86_64
+WIN_BIN_I686 = $(WIN_BIN_DIR)/win32
+WIN_BIN_ARM64 = $(WIN_BIN_DIR)/arm64
 
 # === Default target ===
-all: $(BIN_DIR) $(OBJ_DIR) $(EXES)
+all: $(BIN_DIR) $(OBJ_DIR) $(patsubst $(SRC_DIR)/%.c, $(BIN_DIR)/%, $(SRCS))
 
 debug: CFLAGS = $(DEBUG_CFLAGS)
 debug: LDFLAGS = $(DEBUG_LDFLAGS)
 debug: clean all
 
-windows: $(WIN_BIN_DIR) $(WIN_EXES)
+windows: $(WIN_BIN_X86_64) $(WIN_BIN_I686) $(WIN_BIN_ARM64)
+	$(MAKE) windows-build WIN_CFLAGS="$(WIN_CFLAGS_X86_64)" WIN_LDFLAGS="$(WIN_LDFLAGS_X86_64)" WIN_TARGET="$(WIN_TARGET_X86_64)" WIN_BIN_ARCH=$(WIN_BIN_X86_64)
+	$(MAKE) windows-build WIN_CFLAGS="$(WIN_CFLAGS_I686)" WIN_LDFLAGS="$(WIN_LDFLAGS_I686)" WIN_TARGET="$(WIN_TARGET_I686)" WIN_BIN_ARCH=$(WIN_BIN_I686)
+	$(MAKE) windows-build WIN_CFLAGS="$(WIN_CFLAGS_ARM64)" WIN_LDFLAGS="$(WIN_LDFLAGS_ARM64)" WIN_TARGET="$(WIN_TARGET_ARM64)" WIN_BIN_ARCH=$(WIN_BIN_ARM64)
+
+windows-build: $(SRCS)
+	@for src in $^; do \
+		name=$$(basename $$src .c); \
+		echo "Building $$name.exe for $(WIN_TARGET)"; \
+		$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -lgcc -lgcc_eh -o $(WIN_BIN_ARCH)/$$name.exe $$src; \
+	done
 
 # === Build rules ===
 
@@ -53,16 +98,12 @@ $(BIN_DIR)/%: $(OBJ_DIR)/%.o
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Windows cross-compiled .exe
-$(WIN_BIN_DIR)/%.exe: $(SRC_DIR)/%.c
-	$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -lgcc -lgcc_eh -o $@ $<
-
 # Directory creation
-$(BIN_DIR) $(OBJ_DIR) $(WIN_BIN_DIR):
+$(BIN_DIR) $(OBJ_DIR) $(WIN_BIN_DIR) $(WIN_BIN_X86_64) $(WIN_BIN_I686) $(WIN_BIN_ARM64):
 	mkdir -p $@
 
 # Clean all builds
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
 
-.PHONY: all clean debug windows
+.PHONY: all clean debug windows windows-build
