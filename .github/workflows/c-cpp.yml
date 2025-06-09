@@ -1,23 +1,65 @@
-name: C/C++ CI
+name: Build Binaries
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-w64-windows-gnu, i686-w64-windows-gnu, aarch64-w64-windows-gnu]
+    env:
+      PROGRAM_NAME: typebelow
 
     steps:
-    - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y clang mingw-w64 gcc-aarch64-linux-gnu
+
+      - name: Make output directories
+        run: mkdir -p bin/windows
+
+      - name: Build for ${{ matrix.target }}
+        run: |
+          case "${{ matrix.target }}" in
+            x86_64-w64-windows-gnu)
+              WIN_CC=clang
+              WIN_CFLAGS="--target=x86_64-w64-windows-gnu -D__USE_MINGW_ANSI_STDIO=1 -Iinclude"
+              WIN_LDFLAGS="-Wl,--entry=mainCRTStartup -Wl,--subsystem,console"
+              WIN_ARCH="x86_64"
+              ;;
+            i686-w64-windows-gnu)
+              WIN_CC=clang
+              WIN_CFLAGS="--target=i686-w64-windows-gnu -D__USE_MINGW_ANSI_STDIO=1 -Iinclude"
+              WIN_LDFLAGS="-Wl,--entry=mainCRTStartup -Wl,--subsystem,console"
+              WIN_ARCH="win32"
+              ;;
+            aarch64-w64-windows-gnu)
+              WIN_CC=clang
+              WIN_CFLAGS="--target=aarch64-w64-windows-gnu -Iinclude"
+              WIN_LDFLAGS="-Wl,--entry=mainCRTStartup -Wl,--subsystem,console"
+              WIN_ARCH="arm64"
+              ;;
+          esac
+
+          make windows-build \
+            WIN_CC="$WIN_CC" \
+            WIN_CFLAGS="$WIN_CFLAGS" \
+            WIN_LDFLAGS="$WIN_LDFLAGS" \
+            WIN_TARGET="${{ matrix.target }}" \
+            WIN_ARCH="$WIN_ARCH" \
+            WIN_BIN_ARCH=bin/windows
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binaries-${{ matrix.target }}
+          path: bin/windows/*.exe
