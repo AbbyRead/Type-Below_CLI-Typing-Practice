@@ -1,10 +1,10 @@
 # === Compiler setup ===
 CC = clang
-CFLAGS = -Wall -Wextra -O2 -Iinclude
-LDFLAGS =
+CFLAGS = -Wall -Wextra -O2 -Iinclude -arch x86_64 -arch arm64
+LDFLAGS = -arch x86_64 -arch arm64
 
-DEBUG_CFLAGS = -Wall -Wextra -O0 -g -Iinclude
-DEBUG_LDFLAGS =
+DEBUG_CFLAGS = -Wall -Wextra -O0 -g -Iinclude -arch x86_64 -arch arm64
+DEBUG_LDFLAGS = -arch x86_64 -arch arm64
 
 # === Cross-compilation setup (Windows) ===
 WIN_CC = clang
@@ -21,7 +21,7 @@ WIN_LDFLAGS = \
   -L/opt/homebrew/opt/mingw-w64/toolchain-x86_64/x86_64-w64-mingw32/lib \
   -L/opt/homebrew/opt/mingw-w64/toolchain-x86_64/lib/gcc/x86_64-w64-mingw32/15.1.0 \
   -Wl,--entry=mainCRTStartup -Wl,--subsystem,console
-	
+
 # === Project structure ===
 SRC_DIR = src
 OBJ_DIR = obj
