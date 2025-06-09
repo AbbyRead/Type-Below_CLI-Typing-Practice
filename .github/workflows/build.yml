@@ -1,118 +1,19 @@
-name: Build and Release
+name: Simple Build
 
-on:
-  push:
-    tags:
-      - 'v*' # Only run on version tags like v1.0.0
+on: [push, pull_request]
 
 jobs:
-  extract-version:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.extract.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: extract
-        run: |
-          VERSION=$(grep '#define PROGRAM_VERSION' src/typebelow.c | sed -E 's/.*"([^"]+)".*/\1/')
-          echo "Extracted version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-  build-windows:
-    needs: extract-version
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [x86_64-w64-windows-gnu, i686-w64-windows-gnu, aarch64-w64-windows-gnu]
-    env:
-      PROGRAM_NAME: typebelow
-      VERSION: ${{ needs.extract-version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: sudo apt update && sudo apt install -y clang mingw-w64 gcc-aarch64-linux-gnu
-
-      - name: Create output directory
-        run: mkdir -p bin/windows
-
-      - name: Build ${{ matrix.target }}
-        run: |
-          case "${{ matrix.target }}" in
-            x86_64-w64-windows-gnu)
-              WIN_CC=clang
-              WIN_CFLAGS="--target=x86_64-w64-windows-gnu -D__USE_MINGW_ANSI_STDIO=1 -Iinclude"
-              WIN_LDFLAGS="-Wl,--entry=mainCRTStartup -Wl,--subsystem,console"
-              WIN_ARCH="x86_64"
-              ;;
-            i686-w64-windows-gnu)
-              WIN_CC=clang
-              WIN_CFLAGS="--target=i686-w64-windows-gnu -D__USE_MINGW_ANSI_STDIO=1 -Iinclude"
-              WIN_LDFLAGS="-Wl,--entry=mainCRTStartup -Wl,--subsystem,console"
-              WIN_ARCH="win32"
-              ;;
-            aarch64-w64-windows-gnu)
-              WIN_CC=clang
-              WIN_CFLAGS="--target=aarch64-w64-windows-gnu -Iinclude"
-              WIN_LDFLAGS="-Wl,--entry=mainCRTStartup -Wl,--subsystem,console"
-              WIN_ARCH="arm64"
-              ;;
-          esac
-
-          make windows-build \
-            WIN_CC="$WIN_CC" \
-            WIN_CFLAGS="$WIN_CFLAGS" \
-            WIN_LDFLAGS="$WIN_LDFLAGS" \
-            WIN_TARGET="${{ matrix.target }}" \
-            WIN_ARCH="$WIN_ARCH" \
-            WIN_BIN_ARCH=bin/windows
-
-      - name: Rename with version
-        run: |
-          mv bin/windows/typebelow-${{ matrix.target == 'i686-w64-windows-gnu' && 'win32' || matrix.target == 'x86_64-w64-windows-gnu' && 'x86_64' || 'arm64' }}.exe \
-             bin/windows/typebelow-${{ env.VERSION }}-${{ matrix.target }}.exe
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-${{ matrix.target }}
-          path: bin/windows/*.exe
-
-  build-macos:
-    needs: extract-version
+  build:
     runs-on: macos-latest
-    env:
-      VERSION: ${{ needs.extract-version.outputs.version }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build for macOS
+      - name: Install LLVM (includes lld)
+        run: brew install llvm
+
+      - name: Add LLVM to PATH
+        run: echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
+
+      - name: Build the project
         run: make
-
-      - name: Rename with version
-        run: mv bin/macos/typebelow bin/macos/typebelow-${VERSION}-macos
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos
-          path: bin/macos/typebelow-${{ env.VERSION }}-macos
-
-  release:
-    needs: [build-windows, build-macos]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Show contents
-        run: ls -R artifacts
-
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            artifacts/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
