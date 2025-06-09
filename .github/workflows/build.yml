@@ -13,6 +13,10 @@ jobs:
         run: |
           brew install llvm
 
-      - name: Build the project without -fuse-ld=lld
+      - name: Adjust Makefile for Windows build
         run: |
-          make WIN_LDFLAGS="$(echo "$(make WIN_LDFLAGS)" | sed 's/-fuse-ld=lld//g')"
+          sed -i '' 's/-fuse-ld=lld//g' Makefile
+
+      - name: Build the project
+        run: |
+          make
