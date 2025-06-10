@@ -125,15 +125,23 @@ dist: all | $(DST_DIR)
 		fi \
 	done
 
-$(DST_DIR):
-	mkdir -p $@
+# GitHub release automation
+NOTE ?= "Automated release of version $(PROGRAM_VERSION)"
+release: dist
+	gh release create $(PROGRAM_VERSION) \
+		--title "Release $(PROGRAM_VERSION)" \
+		--notes "$(NOTE)" \
+		$(wildcard $(DST_DIR)/*)
 
 # Directory creation
 $(BIN_DIR) $(OBJ_DIR) $(WIN_BIN_DIR) $(MACOS_BIN_DIR) $(WIN_BIN_X86_64) $(WIN_BIN_I686) $(WIN_BIN_ARM64):
+	mkdir -p $@
+
+$(DST_DIR):
 	mkdir -p $@
 
 # Clean all builds
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR) $(DST_DIR)
 
-.PHONY: all clean debug macos windows windows-build dist
+.PHONY: all clean debug macos windows windows-build dist release
