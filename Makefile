@@ -70,9 +70,10 @@ OBJS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 # WIN_BIN_I686   = $(WIN_BIN_DIR)/win32
 
 # === Default target ===
-all: macos windows
 
 macos: $(MACOS_BIN_DIR) $(OBJ_DIR) $(patsubst $(SRC_DIR)/%.c, $(MACOS_BIN_DIR)/%, $(SRCS))
+
+all: macos windows
 
 # windows target invokes builds with shared output folder:
 windows: $(WIN_BIN_DIR)
