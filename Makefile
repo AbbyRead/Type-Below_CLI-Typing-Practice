@@ -1,3 +1,12 @@
+# === Project structure ===
+PROGRAM_VERSION := v1.0.1
+SRC_DIR = src
+OBJ_DIR = obj
+BIN_DIR = bin
+DST_DIR = dst
+MACOS_BIN_DIR = $(BIN_DIR)/macos
+WIN_BIN_DIR = $(BIN_DIR)/windows
+
 # === Compiler setup ===
 CC = clang
 CFLAGS = -Wall -Wextra -O2 -Iinclude -arch x86_64 -arch arm64
@@ -53,13 +62,6 @@ WIN_LDFLAGS_I686 = \
 WIN_LDFLAGS_ARM64 = \
 	-Wl,--entry=mainCRTStartup -Wl,--subsystem,console
 
-# === Project structure ===
-SRC_DIR = src
-OBJ_DIR = obj
-BIN_DIR = bin
-MACOS_BIN_DIR = $(BIN_DIR)/macos
-WIN_BIN_DIR = $(BIN_DIR)/windows
-
 # === Source and binary derivations ===
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 OBJS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
@@ -78,13 +80,13 @@ all: macos windows
 # windows target invokes builds with shared output folder:
 windows: $(WIN_BIN_DIR)
 	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_X86_64)" WIN_LDFLAGS="$(WIN_LDFLAGS_X86_64)" WIN_TARGET="$(WIN_TARGET_X86_64)" WIN_ARCH=x86_64 WIN_BIN_ARCH=$(WIN_BIN_DIR)
-	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_I686)" WIN_LDFLAGS="$(WIN_LDFLAGS_I686)" WIN_TARGET="$(WIN_TARGET_I686)" WIN_ARCH=win32 WIN_BIN_ARCH=$(WIN_BIN_DIR)
+	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_I686)" WIN_LDFLAGS="$(WIN_LDFLAGS_I686)" WIN_TARGET="$(WIN_TARGET_I686)" WIN_ARCH=x86_32 WIN_BIN_ARCH=$(WIN_BIN_DIR)
 	$(MAKE) windows-build WIN_CC=$(WIN_CC_ARM64) WIN_CFLAGS="$(WIN_CFLAGS_ARM64)" WIN_LDFLAGS="$(WIN_LDFLAGS_ARM64)" WIN_TARGET="$(WIN_TARGET_ARM64)" WIN_ARCH=arm64 WIN_BIN_ARCH=$(WIN_BIN_DIR)
 
 windows-build: $(SRCS)
 	@for src in $^; do \
 		name=$$(basename $$src .c); \
-		outfile="$(WIN_BIN_ARCH)/$${name}-$(WIN_ARCH).exe"; \
+		outfile="$(WIN_BIN_ARCH)/$(WIN_ARCH).exe"; \
 		echo "Building $$outfile for $(WIN_TARGET)"; \
 		if [ "$(WIN_TARGET)" = "aarch64-w64-windows-gnu" ]; then \
 			$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -o $$outfile $$src; \
@@ -107,12 +109,31 @@ $(MACOS_BIN_DIR)/%: $(OBJ_DIR)/%.o | $(MACOS_BIN_DIR)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Distribution copies
+dist: all | $(DST_DIR)
+	@echo "Copying and renaming binaries to $(DST_DIR)/"
+	@for file in $(MACOS_BIN_DIR)/*; do \
+		if [ -f "$$file" ]; then \
+			base=$$(basename $$file); \
+			cp -a "$$file" "$(DST_DIR)/typebelow-$(PROGRAM_VERSION)-macos-universal"; \
+		fi \
+	done
+	@for file in $(WIN_BIN_DIR)/*.exe; do \
+		if [ -f "$$file" ]; then \
+			base=$$(basename $$file .exe); \
+			cp "$$file" "$(DST_DIR)/typebelow-$(PROGRAM_VERSION)-windows-$${base}.exe"; \
+		fi \
+	done
+
+$(DST_DIR):
+	mkdir -p $@
+
 # Directory creation
 $(BIN_DIR) $(OBJ_DIR) $(WIN_BIN_DIR) $(MACOS_BIN_DIR) $(WIN_BIN_X86_64) $(WIN_BIN_I686) $(WIN_BIN_ARM64):
 	mkdir -p $@
 
 # Clean all builds
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(OBJ_DIR) $(BIN_DIR) $(DST_DIR)
 
-.PHONY: all clean debug windows windows-build
+.PHONY: all clean debug macos windows windows-build dist
