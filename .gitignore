@@ -13,8 +13,9 @@
 *.gch
 
 # Build folders
-bin/
 obj/
+bin/
+dst/
 build/
 
 # Logs and temp files
