@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PROGRAM_VERSION "1.0.0"
+#define PROGRAM_VERSION "1.0.1"
 
 #define STRING_MATCH 0
 #define CHUNK_SIZE 4096
@@ -220,9 +220,10 @@ int main(int argc, char *argv[]) {
 	long line = starting_line;
 	char user_input[1024];
 	size_t buffer_length = strlen(buffer);
+	int last_line;
 	while (line < total_lines + 1) {
-		print_next_line(buffer, &offset, buffer_length);
-
+		last_line = print_next_line(buffer, &offset, buffer_length);
+		if (last_line) printf("\n");
 		if (fgets(user_input, sizeof(user_input), user_input_stream)) {
 			user_input[strcspn(user_input, "\n")] = '\0';
 		} else {
