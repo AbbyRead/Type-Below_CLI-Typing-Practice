@@ -10,10 +10,12 @@
 
 #ifdef _WIN32
 #include <io.h>
+#include <windows.h>
 #define isatty _isatty
 #define fileno _fileno
 #define USER_INPUT_DEVICE "CON"
 #else
+#include <sys/ioctl.h>
 #include <unistd.h>
 #define USER_INPUT_DEVICE "/dev/tty"
 #endif
@@ -125,7 +127,7 @@ long validate_line_number(const char *line_number_str, const long total_lines) {
 
 	if (line_number > total_lines) {
 		printf("Starting line specified: %ld is greater than number of lines available: %ld.\n",
-			   line_number, total_lines);
+			line_number, total_lines);
 		exit(EXIT_FAILURE);
 	}
 	if (line_number < 0) {
@@ -133,7 +135,7 @@ long validate_line_number(const char *line_number_str, const long total_lines) {
 		if (line_number < 1) {
 			printf("Starting line offset from end is greater than the total number of lines.\n");
 			printf("Total: %ld\tSpecified: %s\nWhich would evaluate as line %ld.\n",
-				   total_lines, line_number_str, line_number);
+				total_lines, line_number_str, line_number);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -151,6 +153,36 @@ void set_starting_offset(const char *buffer, unsigned long *offset, const long s
 		substring = newline + 1;
 		--remaining_searches;
 	}
+}
+
+int get_terminal_height() {
+#ifdef _WIN32
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	int columns, rows;
+
+	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+	rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+	return rows;
+#else
+	struct winsize w;
+	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+	return w.ws_row;
+#endif
+}
+
+void move_cursor_up(int lines) {
+#ifdef _WIN32
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    COORD pos;
+
+    GetConsoleScreenBufferInfo(hOut, &csbi);
+    pos.X = 0;
+    pos.Y = csbi.dwCursorPosition.Y - lines;
+    SetConsoleCursorPosition(hOut, pos);
+#else
+    printf("\033[%dA", lines);  // ANSI escape: move cursor up
+#endif
 }
 
 int print_next_line(const char *buffer, unsigned long *offset, size_t buffer_length) {
@@ -221,9 +253,21 @@ int main(int argc, char *argv[]) {
 	char user_input[1024];
 	size_t buffer_length = strlen(buffer);
 	int last_line;
+
 	while (line < total_lines + 1) {
 		last_line = print_next_line(buffer, &offset, buffer_length);
 		if (last_line) printf("\n");
+
+		// Position the text input line
+		int height = get_terminal_height();
+		float padding_ratio = 0.3; 
+		int pad_lines = (int)(height * padding_ratio);
+		for (int i = 0; i < pad_lines; i++) {
+			printf("\n");
+		}
+		move_cursor_up(pad_lines);
+		fflush(stdout);
+
 		if (fgets(user_input, sizeof(user_input), user_input_stream)) {
 			user_input[strcspn(user_input, "\n")] = '\0';
 		} else {
