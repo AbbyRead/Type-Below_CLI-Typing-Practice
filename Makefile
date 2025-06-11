@@ -1,5 +1,5 @@
 # === Project structure ===
-PROGRAM_VERSION := v1.0.1
+PROGRAM_VERSION := v1.0.2
 SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin

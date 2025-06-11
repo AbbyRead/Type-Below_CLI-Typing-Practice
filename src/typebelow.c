@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PROGRAM_VERSION "1.0.1"
+#define PROGRAM_VERSION "1.0.2"
 
 #define STRING_MATCH 0
 #define CHUNK_SIZE 4096
@@ -260,7 +260,7 @@ int main(int argc, char *argv[]) {
 
 		// Position the text input line
 		int height = get_terminal_height();
-		float padding_ratio = 0.3; 
+		float padding_ratio = 0.4; 
 		int pad_lines = (int)(height * padding_ratio);
 		for (int i = 0; i < pad_lines; i++) {
 			printf("\n");
