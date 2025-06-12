@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PROGRAM_VERSION "1.0.2"
+#include "version.h"
 
 #define STRING_MATCH 0
 #define CHUNK_SIZE 4096

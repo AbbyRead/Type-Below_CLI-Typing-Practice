@@ -1,11 +1,14 @@
+PROGRAM_VERSION = "1.1.0"
+
 # === Project structure ===
-PROGRAM_VERSION := v1.0.2
 SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin
 DST_DIR = dst
+INCLUDE_DIR = include
 MACOS_BIN_DIR = $(BIN_DIR)/macos
 WIN_BIN_DIR = $(BIN_DIR)/windows
+VERSION_H = $(INCLUDE_DIR)/version.h
 
 # === Compiler setup ===
 CC = clang
@@ -66,16 +69,21 @@ WIN_LDFLAGS_ARM64 = \
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 OBJS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
-# Directories for each Windows arch output
-# WIN_BIN_X86_64 = $(WIN_BIN_DIR)/x86_64
-# WIN_BIN_ARM64  = $(WIN_BIN_DIR)/arm64
-# WIN_BIN_I686   = $(WIN_BIN_DIR)/win32
-
 # === Default target ===
 
 macos: $(MACOS_BIN_DIR) $(OBJ_DIR) $(patsubst $(SRC_DIR)/%.c, $(MACOS_BIN_DIR)/%, $(SRCS))
 
 all: macos windows
+
+.PHONY: $(VERSION_H) # Don't cache file timestamp
+
+$(VERSION_H):
+	@echo '#ifndef VERSION_H' > $(VERSION_H)
+	@echo '#define VERSION_H' >> $(VERSION_H)
+	@echo '' >> $(VERSION_H)
+	@echo '#define PROGRAM_VERSION $(PROGRAM_VERSION)' >> $(VERSION_H)
+	@echo '' >> $(VERSION_H)
+	@echo '#endif' >> $(VERSION_H)
 
 # windows target invokes builds with shared output folder:
 windows: $(WIN_BIN_DIR)
@@ -110,7 +118,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Distribution copies
-dist: all | $(DST_DIR)
+dist: clean all $(VERSION_H) | $(DST_DIR)
 	@echo "Copying and renaming binaries to $(DST_DIR)/"
 	@for file in $(MACOS_BIN_DIR)/*; do \
 		if [ -f "$$file" ]; then \
