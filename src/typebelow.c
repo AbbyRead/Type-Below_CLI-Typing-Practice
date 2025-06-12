@@ -4,21 +4,10 @@
 #include <string.h>
 
 #include "version.h"
+#include "platform.h"
 
 #define STRING_MATCH 0
 #define CHUNK_SIZE 4096
-
-#ifdef _WIN32
-#include <io.h>
-#include <windows.h>
-#define isatty _isatty
-#define fileno _fileno
-#define USER_INPUT_DEVICE "CON"
-#else
-#include <sys/ioctl.h>
-#include <unistd.h>
-#define USER_INPUT_DEVICE "/dev/tty"
-#endif
 
 enum InputMode {
 	INPUT_MODE_FILE,
