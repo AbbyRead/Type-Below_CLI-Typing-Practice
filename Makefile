@@ -1,4 +1,4 @@
-PROGRAM_VERSION = "1.1.0"
+PROGRAM_VERSION = 1.1.0
 
 # === Project structure ===
 SRC_DIR = src
@@ -19,15 +19,8 @@ DEBUG_CFLAGS = -Wall -Wextra -O0 -g -Iinclude -arch x86_64 -arch arm64
 DEBUG_LDFLAGS = -arch x86_64 -arch arm64
 
 # === Cross-compilation setup (Windows) ===
-# Default cross-compiler for Windows targets
-WIN_CC = clang
-# ARM64 Windows build will use llvm-mingw's toolchain directly
-WIN_CC_ARM64 = $(HOME)/toolchains/llvm-mingw/bin/aarch64-w64-mingw32-clang
-
-# Toolchain roots for each architecture
-MINGW_ROOT_X86_64 = /opt/homebrew/opt/mingw-w64/toolchain-x86_64
-MINGW_ROOT_I686   = /opt/homebrew/opt/mingw-w64/toolchain-i686
-MINGW_ROOT_ARM64  = $(HOME)/toolchains/llvm-mingw
+LLVM_MINGW_ROOT = $(HOME)/toolchains/llvm-mingw
+WIN_CC = $(LLVM_MINGW_ROOT)/bin/clang
 
 # Targets per architecture
 WIN_TARGET_X86_64 = x86_64-w64-windows-gnu
@@ -36,34 +29,22 @@ WIN_TARGET_ARM64  = aarch64-w64-windows-gnu
 
 # CFLAGS per arch
 WIN_CFLAGS_X86_64 = \
-	--target=$(WIN_TARGET_X86_64) \
-	-isystem $(MINGW_ROOT_X86_64)/x86_64-w64-mingw32/include \
-	-D__USE_MINGW_ANSI_STDIO=1 \
+	--target=x86_64-w64-windows-gnu \
 	-Iinclude
 
 WIN_CFLAGS_I686 = \
-	--target=$(WIN_TARGET_I686) \
-	-isystem $(MINGW_ROOT_I686)/i686-w64-mingw32/include \
-	-D__USE_MINGW_ANSI_STDIO=1 \
+	--target=i686-w64-windows-gnu \
 	-Iinclude
 
 WIN_CFLAGS_ARM64 = \
-	--target=$(WIN_TARGET_ARM64) \
+	--target=aarch64-w64-windows-gnu \
 	-Iinclude
 
 # LDFLAGS per arch
-WIN_LDFLAGS_X86_64 = \
-	-L$(MINGW_ROOT_X86_64)/x86_64-w64-mingw32/lib \
-	-L$(MINGW_ROOT_X86_64)/lib/gcc/x86_64-w64-mingw32/15.1.0 \
-	-Wl,--entry=mainCRTStartup -Wl,--subsystem,console
-
-WIN_LDFLAGS_I686 = \
-	-L$(MINGW_ROOT_I686)/i686-w64-mingw32/lib \
-	-L$(MINGW_ROOT_I686)/lib/gcc/i686-w64-mingw32/15.1.0 \
-	-Wl,--entry=mainCRTStartup -Wl,--subsystem,console
-
-WIN_LDFLAGS_ARM64 = \
-	-Wl,--entry=mainCRTStartup -Wl,--subsystem,console
+WIN_LDFLAGS_COMMON = -Wl,--entry=mainCRTStartup -Wl,--subsystem,console
+WIN_LDFLAGS_X86_64 = $(WIN_LDFLAGS_COMMON)
+WIN_LDFLAGS_I686   = $(WIN_LDFLAGS_COMMON)
+WIN_LDFLAGS_ARM64  = $(WIN_LDFLAGS_COMMON)
 
 # === Source and binary derivations ===
 SRCS := $(wildcard $(SRC_DIR)/*.c)
@@ -81,19 +62,18 @@ $(VERSION_H):
 	@echo '#ifndef VERSION_H' > $(VERSION_H)
 	@echo '#define VERSION_H' >> $(VERSION_H)
 	@echo '' >> $(VERSION_H)
-	@echo '#define PROGRAM_VERSION $(PROGRAM_VERSION)' >> $(VERSION_H)
+	@echo '#define PROGRAM_VERSION "$(PROGRAM_VERSION)"' >> $(VERSION_H)
 	@echo '' >> $(VERSION_H)
 	@echo '#endif' >> $(VERSION_H)
 
 # windows target invokes builds with shared output folder:
 windows: $(WIN_BIN_DIR)
-	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_X86_64)" WIN_LDFLAGS="$(WIN_LDFLAGS_X86_64)" WIN_TARGET="$(WIN_TARGET_X86_64)" WIN_ARCH=x86_64 WIN_BIN_ARCH=$(WIN_BIN_DIR)
-	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_I686)" WIN_LDFLAGS="$(WIN_LDFLAGS_I686)" WIN_TARGET="$(WIN_TARGET_I686)" WIN_ARCH=x86_32 WIN_BIN_ARCH=$(WIN_BIN_DIR)
-	$(MAKE) windows-build WIN_CC=$(WIN_CC_ARM64) WIN_CFLAGS="$(WIN_CFLAGS_ARM64)" WIN_LDFLAGS="$(WIN_LDFLAGS_ARM64)" WIN_TARGET="$(WIN_TARGET_ARM64)" WIN_ARCH=arm64 WIN_BIN_ARCH=$(WIN_BIN_DIR)
+	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_X86_64)" WIN_LDFLAGS="$(WIN_LDFLAGS_X86_64)" WIN_ARCH=x86_64 WIN_BIN_ARCH=$(WIN_BIN_DIR)
+	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_I686)" WIN_LDFLAGS="$(WIN_LDFLAGS_I686)" WIN_ARCH=x86_32 WIN_BIN_ARCH=$(WIN_BIN_DIR)
+	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_ARM64)" WIN_LDFLAGS="$(WIN_LDFLAGS_ARM64)" WIN_ARCH=arm64 WIN_BIN_ARCH=$(WIN_BIN_DIR)
 
 windows-build: $(SRCS)
 	@outfile="$(WIN_BIN_ARCH)/$(WIN_ARCH).exe"; \
-	echo "Building $$outfile for $(WIN_TARGET)"; \
 	$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -o $$outfile $(SRCS)
 
 debug: CFLAGS = $(DEBUG_CFLAGS)
@@ -135,7 +115,7 @@ release: dist
 		$(wildcard $(DST_DIR)/*)
 
 # Directory creation
-$(BIN_DIR) $(OBJ_DIR) $(WIN_BIN_DIR) $(MACOS_BIN_DIR) $(WIN_BIN_X86_64) $(WIN_BIN_I686) $(WIN_BIN_ARM64):
+$(BIN_DIR) $(OBJ_DIR) $(WIN_BIN_DIR) $(MACOS_BIN_DIR):
 	mkdir -p $@
 
 $(DST_DIR):
