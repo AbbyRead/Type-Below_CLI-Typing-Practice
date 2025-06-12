@@ -1,4 +1,5 @@
 #include "core.h"
+#include "ingest.h"
 #include "platform.h"
 #include "version.h"
 
