@@ -71,7 +71,7 @@ OBJS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
 # === Default target ===
 
-macos: $(MACOS_BIN_DIR) $(OBJ_DIR) $(patsubst $(SRC_DIR)/%.c, $(MACOS_BIN_DIR)/%, $(SRCS))
+macos: $(MACOS_BIN_DIR)/typebelow
 
 all: macos windows
 
@@ -92,16 +92,9 @@ windows: $(WIN_BIN_DIR)
 	$(MAKE) windows-build WIN_CC=$(WIN_CC_ARM64) WIN_CFLAGS="$(WIN_CFLAGS_ARM64)" WIN_LDFLAGS="$(WIN_LDFLAGS_ARM64)" WIN_TARGET="$(WIN_TARGET_ARM64)" WIN_ARCH=arm64 WIN_BIN_ARCH=$(WIN_BIN_DIR)
 
 windows-build: $(SRCS)
-	@for src in $^; do \
-		name=$$(basename $$src .c); \
-		outfile="$(WIN_BIN_ARCH)/$(WIN_ARCH).exe"; \
-		echo "Building $$outfile for $(WIN_TARGET)"; \
-		if [ "$(WIN_TARGET)" = "aarch64-w64-windows-gnu" ]; then \
-			$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -o $$outfile $$src; \
-		else \
-			$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -lgcc -lgcc_eh -o $$outfile $$src; \
-		fi \
-	done
+	@outfile="$(WIN_BIN_ARCH)/$(WIN_ARCH).exe"; \
+	echo "Building $$outfile for $(WIN_TARGET)"; \
+	$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -o $$outfile $(SRCS)
 
 debug: CFLAGS = $(DEBUG_CFLAGS)
 debug: LDFLAGS = $(DEBUG_LDFLAGS)
@@ -110,8 +103,8 @@ debug: clean all
 # === Build rules ===
 
 # Native binaries
-$(MACOS_BIN_DIR)/%: $(OBJ_DIR)/%.o | $(MACOS_BIN_DIR)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+$(MACOS_BIN_DIR)/typebelow: $(OBJS) | $(MACOS_BIN_DIR)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 # Object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
