@@ -16,36 +16,6 @@ void echo_usage(const char *prog_name) {
 		prog_name, prog_name, prog_name, prog_name, prog_name, prog_name);
 }
 
-int get_terminal_height(void) {
-	#ifdef _WIN32
-		CONSOLE_SCREEN_BUFFER_INFO csbi;
-		int columns, rows;
-
-		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
-		rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-		return rows;
-	#else
-		struct winsize w;
-		ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-		return w.ws_row;
-	#endif
-}
-
-void move_cursor_up(int lines) {
-	#ifdef _WIN32
-		HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-		CONSOLE_SCREEN_BUFFER_INFO csbi;
-		COORD pos;
-
-		GetConsoleScreenBufferInfo(hOut, &csbi);
-		pos.X = 0;
-		pos.Y = csbi.dwCursorPosition.Y - lines;
-		SetConsoleCursorPosition(hOut, pos);
-	#else
-		printf("\033[%dA", lines);  // ANSI escape: move cursor up
-	#endif
-}
-
 int print_next_line(const char *buffer, unsigned long *offset, size_t buffer_length) {
 	if (*offset >= buffer_length) return 1;
 

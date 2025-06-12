@@ -2,15 +2,40 @@
 #define PLATFORM_H
 
 #ifdef _WIN32
+
 #include <io.h>
 #include <windows.h>
 #define isatty _isatty
 #define fileno _fileno
 #define USER_INPUT_DEVICE "CON"
-#else
+static inline int get_terminal_height() {
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+    return csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+}
+static inline void move_cursor_up(int lines) {
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    COORD pos;
+    GetConsoleScreenBufferInfo(hOut, &csbi);
+    pos.X = 0;
+    pos.Y = csbi.dwCursorPosition.Y - lines;
+    SetConsoleCursorPosition(hOut, pos);
+}
+
+#else // POSIX
 #include <sys/ioctl.h>
 #include <unistd.h>
 #define USER_INPUT_DEVICE "/dev/tty"
-#endif
+static inline int get_terminal_height() {
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    return w.ws_row;
+}
+static inline void move_cursor_up(int lines) {
+    printf("\033[%dA", lines);
+}
 
-#endif
+#endif // Windows vs. POSIX
+
+#endif // PLATFORM_H
