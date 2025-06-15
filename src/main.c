@@ -64,13 +64,12 @@ int main(int argc, char *argv[]) {
 	long line = starting_line;
 	char user_input[1024];
 	size_t buffer_length = strlen(buffer);
-	int last_line;
 	
 	while (line < total_lines + 1) {
 		// Save offset before printing
 		unsigned long line_offset = offset;
 		
-		last_line = print_next_line(buffer, &offset, buffer_length);
+		int last_line = print_next_line(buffer, &offset, buffer_length);
 		
 		size_t printed_line_len = 0;
 		const char *line_start = &buffer[line_offset];
