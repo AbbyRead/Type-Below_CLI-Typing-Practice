@@ -22,7 +22,7 @@ static inline void move_cursor_up(int lines) {
     COORD pos;
     GetConsoleScreenBufferInfo(hOut, &csbi);
     pos.X = 0;
-    pos.Y = csbi.dwCursorPosition.Y - lines;
+	pos.Y = (csbi.dwCursorPosition.Y >= lines) ? csbi.dwCursorPosition.Y - lines : 0;
     SetConsoleCursorPosition(hOut, pos);
 }
 
