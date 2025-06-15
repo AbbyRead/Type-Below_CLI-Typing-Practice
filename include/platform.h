@@ -1,10 +1,14 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+// Cross-platform abstractions (e.g., timing, clipboard, file handling)
+
 void platform_init(void);
 void platform_cleanup(void);
 
-// Clipboard — returns malloc'd string or NULL if unavailable
+// Returns a malloc'ed string with clipboard contents.
+// Caller must free the returned string.
+// Returns NULL on failure or if clipboard is empty.
 char *platform_get_clipboard(void);
 
 // Terminal size
