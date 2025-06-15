@@ -1,5 +1,4 @@
 PROGRAM_VERSION = 1.2.0
-LIBS = -lclipboard
 
 # === Project structure ===
 SRC_DIR = src
@@ -22,9 +21,6 @@ DEBUG_LDFLAGS = -arch x86_64 -arch arm64
 # === Cross-compilation setup (Windows) ===
 LLVM_MINGW_ROOT = $(HOME)/toolchains/llvm-mingw
 WIN_CC = $(LLVM_MINGW_ROOT)/bin/clang
-
-# Library use
-CFLAGS += -Ilib/libclipboard/include
 
 # Targets per architecture
 WIN_TARGET_X86_64 = x86_64-w64-windows-gnu
@@ -49,6 +45,18 @@ WIN_LDFLAGS_COMMON = -Wl,--entry=mainCRTStartup -Wl,--subsystem,console
 WIN_LDFLAGS_X86_64 = $(WIN_LDFLAGS_COMMON)
 WIN_LDFLAGS_I686   = $(WIN_LDFLAGS_COMMON)
 WIN_LDFLAGS_ARM64  = $(WIN_LDFLAGS_COMMON)
+
+# macOS
+CFLAGS += -Ilib/libclipboard/include
+LDFLAGS += -Llib/libclipboard/buildmac -lclipboard
+
+# Windows x86_64 (cross-compile)
+WIN_CFLAGS_X86_64 += -Ilib/libclipboard/include
+WIN_LDFLAGS_X86_64 += -Llib/libclipboard/buildwin -lclipboard
+
+# Linux X11
+LINUX_CFLAGS += -Ilib/libclipboard/include
+LINUX_LDFLAGS += -Llib/libclipboard/buildx11 -lclipboard
 
 # === Source and binary derivations ===
 SRCS := $(wildcard $(SRC_DIR)/*.c)
