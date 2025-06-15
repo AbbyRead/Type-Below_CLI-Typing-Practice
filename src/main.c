@@ -34,10 +34,10 @@ int main(int argc, char *argv[]) {
 
 	char *buffer = copy_to_buffer(source_text);
 	if (!buffer) {
-		fclose(source_text);
+		if (source_text != stdin) fclose(source_text);
 		return EXIT_FAILURE;
 	}
-	fclose(source_text);
+	if (source_text != stdin) fclose(source_text);
 
 	FILE *user_input_stream = fopen(USER_INPUT_DEVICE, "r");
 	if (!user_input_stream) {
