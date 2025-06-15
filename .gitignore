@@ -18,13 +18,14 @@ bin/
 dst/
 build/
 
-# Logs and temp files
+# Logs and temp files/folders
 *.log
 *.tmp
 *~
 *.swp
 *.swo
 *.bak
+bak/
 
 # IDE/project files
 .vscode/
