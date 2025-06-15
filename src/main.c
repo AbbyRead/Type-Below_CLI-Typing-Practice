@@ -6,7 +6,27 @@
 int main(int argc, char *argv[]) {
 	precheck_arguments(argc, argv);
 
-	const char *file_arg = (argc >= 2) ? argv[1] : NULL;
+	const char *file_arg = NULL;
+	const char *start_line_arg = NULL;
+
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-s") == 0) {
+			if (i + 1 >= argc) {
+				fprintf(stderr, "Error: Missing argument for -s\n");
+				echo_usage(argv[0]);
+				exit(EXIT_FAILURE);
+			}
+			start_line_arg = argv[++i];
+		} else if (argv[i][0] != '-') {
+			if (file_arg) {
+				fprintf(stderr, "Error: Multiple input sources specified.\n");
+				echo_usage(argv[0]);
+				exit(EXIT_FAILURE);
+			}
+			file_arg = argv[i];
+		}
+	}
+
 	enum InputMode mode = determine_input_mode(file_arg);
 	FILE *source_text = NULL;
 
@@ -65,10 +85,12 @@ int main(int argc, char *argv[]) {
 	}
 	long starting_line = 1;
 	unsigned long offset = 0;
-	if (argc == 3) {
-		starting_line = validate_line_number(argv[2], total_lines);
+
+	if (start_line_arg) {
+		starting_line = validate_line_number(start_line_arg, total_lines);
 		set_starting_offset(buffer, &offset, starting_line);
 	}
+
 	const char *source_label =
 		mode == INPUT_MODE_CLIPBOARD ? "clipboard" :
 		mode == INPUT_MODE_PIPE ? "stdin" : file_arg;
@@ -106,18 +128,24 @@ int main(int argc, char *argv[]) {
 
 		if (!fgets(user_input, input_capacity, user_input_stream)) {
 			printf("\n"); // Extra newline for cleanliness
-			switch (mode) {
+			switch (mode) {				
+				case INPUT_MODE_CLIPBOARD:
+					printf("Program ended on line %ld of %ld.\n", line, total_lines);
+					printf("To resume from the same clipboard content, use:\n");
+					printf("%s -s %ld\n", argv[0], line);
+					break;
 				case INPUT_MODE_PIPE:
-					printf("Program ended. Example resume command:\n");
-					printf("cat original.txt | ");
+					printf("Program ended on line %ld of %ld.\n", line, total_lines);
+					printf("To resume from the same piped or redirected content, use:\n");
+					printf("%s -s %ld -\n", argv[0], line);
 					break;
 				case INPUT_MODE_FILE:
-					printf("Program ended on line %ld of %ld\n", line, total_lines);
+					printf("Program ended on line %ld of %ld.\n", line, total_lines);
 					printf("To continue from this point next time use the command:\n");
+					printf("%s -s %ld %s\n", argv[0], line, file_arg);
 					break;
 				default: break;
 			}
-			printf("%s %s %ld\n", argv[0], argv[1], line);
 			goto cleanup;
 		}
 

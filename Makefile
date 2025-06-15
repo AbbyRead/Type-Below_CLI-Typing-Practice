@@ -1,4 +1,4 @@
-PROGRAM_VERSION = 1.1.2
+PROGRAM_VERSION = 1.2.0
 
 # === Project structure ===
 SRC_DIR = src

@@ -17,7 +17,7 @@ My focus here is to make something that fits my own use case.
 
 ## Usage
 ```bash
-typebelow <filename> [starting_line_number]  # Source the text of an existing file
-typebelow - [starting_line_number]           # Source from pipeing or redirection
-typebelow [starting_line_number]             # Source from copy/paste clipboard
+typebelow [options] filename    # Source text from an existing file
+typebelow [options] -           # Source text from stdin via piping/redirection
+typebelow [options]             # Source text from the OS copy/paste clipboard
 ```

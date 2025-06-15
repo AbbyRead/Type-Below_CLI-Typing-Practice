@@ -4,16 +4,17 @@
 void echo_usage(const char *prog_name) {
 	fprintf(stderr,
 		"Usage:\n"
-		"  %s <filename> [starting_line]\n"
-		"  %s - [starting_line]\n\n"
+		"  %s [options] filename    # Source text from an existing file\n"
+		"  %s [options] -           # Source text from stdin via piping/redirection\n"
+		"  %s [options]             # Source text from the OS copy/paste clipboard\n\n"
 		"Options:\n"
-		"  -h, --help          Show this help message and exit.\n\n"
-		"  -v, --version       Show program version and exit.\n\n"
+		"  -s <line_number>         Start from the specified line (negative = offset from end)\n"
+		"  -h, --help               Show this help message and exit\n"
+		"  -v, --version            Show program version and exit\n\n"
 		"Examples:\n"
-		"  %s myfile.txt            # Read from file starting at line 1\n"
-		"  %s myfile.txt 10         # Start at line 10\n"
-		"  cat myfile.txt | %s -    # Read from piped stdin\n"
-		"  cat myfile.txt | %s - -2 # Start 2 lines from end\n\n",
+		"  %s -s 10 myfile.txt      # Start at line 10 from file\n"
+		"  %s -s -3 -               # Start 3 lines from end, read from stdin\n"
+		"  %s                       # Read from clipboard, start at line 1\n",
 		prog_name, prog_name, prog_name, prog_name, prog_name, prog_name);
 }
 
