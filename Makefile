@@ -1,7 +1,7 @@
 # Makefile for cross-platform build: macOS (universal), Linux, Windows (x86_64, i686, arm64)
 # Includes debug builds, auto dependency generation, distribution, testing, and release automation.
 
-PROGRAM_VERSION ?= 1.2.0
+PROGRAM_VERSION ?= E0.0.0
 
 # === Project Structure ===
 SRC_DIR       := src
