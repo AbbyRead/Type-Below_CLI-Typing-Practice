@@ -17,4 +17,7 @@ My focus here is to make something that fits my own use case.
 
 ## Usage
 ```bash
-./typebelow <text_file> [starting_line_number]
+typebelow <filename> [starting_line_number]  # Source the text of an existing file
+typebelow - [starting_line_number]           # Source from pipeing or redirection
+typebelow [starting_line_number]             # Source from copy/paste clipboard
+```

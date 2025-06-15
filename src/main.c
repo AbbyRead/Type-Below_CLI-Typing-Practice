@@ -6,31 +6,29 @@
 int main(int argc, char *argv[]) {
 	precheck_arguments(argc, argv);
 
-	enum InputMode mode = determine_input_mode(argv[1]);
+	const char *file_arg = (argc >= 2) ? argv[1] : NULL;
+	enum InputMode mode = determine_input_mode(file_arg);
 	FILE *source_text = NULL;
 
 	switch (mode) {
 		case INPUT_MODE_PIPE:
-			#ifdef _WIN32
-				// On Windows, _isatty() often returns true even with piped input,
-				// so we skip this check and assume the user knows what they're doing.
-				source_text = stdin;
-			#else
-				if (isatty(fileno(stdin))) {
-					fprintf(stderr, "Error: No piped-in text detected on stdin.\n");
-					return EXIT_FAILURE;
-				}
-				source_text = stdin;
-			#endif
-			// printf("Input mode: Piped input (stdin)\n");
-			break;
-		case INPUT_MODE_FILE:
-			source_text = fopen(argv[1], "r");
-			if (!source_text) {
-				fprintf(stderr, "Error opening file '%s': %s\n", argv[1], strerror(errno));
+			#ifndef _WIN32
+			if (isatty(fileno(stdin))) {
+				fprintf(stderr, "Error: No piped-in text detected on stdin.\n");
 				return EXIT_FAILURE;
 			}
-			// printf("Input mode: File\n");
+			#endif
+			source_text = stdin;
+			break;
+		case INPUT_MODE_FILE:
+			source_text = fopen(file_arg, "r");
+			if (!source_text) {
+				fprintf(stderr, "Error opening file '%s': %s\n", file_arg, strerror(errno));
+				return EXIT_FAILURE;
+			}
+			break;
+		case INPUT_MODE_CLIPBOARD:
+			// will call special function below
 			break;
 		default:
 			fprintf(stderr, "Unknown input mode.\n");
@@ -38,12 +36,18 @@ int main(int argc, char *argv[]) {
 			return EXIT_FAILURE;
 	}
 
-	char *buffer = copy_to_buffer(source_text);
-	if (!buffer) {
+	char *buffer = NULL;
+	if (mode == INPUT_MODE_CLIPBOARD) {
+		buffer = copy_from_clipboard();
+	} else {
+		buffer = copy_to_buffer(source_text);
+		if (!buffer) {
+			if (source_text != stdin) fclose(source_text);
+			return EXIT_FAILURE;
+		}
 		if (source_text != stdin) fclose(source_text);
-		return EXIT_FAILURE;
 	}
-	if (source_text != stdin) fclose(source_text);
+
 
 	FILE *user_input_stream = fopen(USER_INPUT_DEVICE, "r");
 	if (!user_input_stream) {
@@ -65,7 +69,9 @@ int main(int argc, char *argv[]) {
 		starting_line = validate_line_number(argv[2], total_lines);
 		set_starting_offset(buffer, &offset, starting_line);
 	}
-	const char *source_label = (mode == INPUT_MODE_PIPE) ? "stdin" : argv[1];
+	const char *source_label =
+		mode == INPUT_MODE_CLIPBOARD ? "clipboard" :
+		mode == INPUT_MODE_PIPE ? "stdin" : file_arg;
 	printf("Reading from '%s', starting from line %ld of %ld.\n", source_label, starting_line, total_lines);
 	long line = starting_line;
 	char *user_input = NULL;

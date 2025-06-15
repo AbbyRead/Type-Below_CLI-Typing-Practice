@@ -57,6 +57,42 @@ char *copy_to_buffer(FILE *stream) {
 	return final_buffer;
 }
 
+char *copy_from_clipboard() {
+	#ifdef _WIN32
+		if (!OpenClipboard(NULL)) return NULL;
+		HANDLE hData = GetClipboardData(CF_TEXT);
+		if (hData == NULL) {
+			CloseClipboard();
+			return NULL;
+		}
+		char *clipboard_data = GlobalLock(hData);
+		if (!clipboard_data) {
+			CloseClipboard();
+			return NULL;
+		}
+		char *copy = strdup(clipboard_data);
+		GlobalUnlock(hData);
+		CloseClipboard();
+		return copy;
+	#else
+		FILE *pipe = popen(
+			#ifdef __APPLE__
+				"pbpaste"
+			#else
+				"xclip -selection clipboard -o"
+			#endif
+		, "r");
+
+		if (!pipe) {
+			perror("Could not open clipboard pipe");
+			return NULL;
+		}
+		char *buffer = copy_to_buffer(pipe);
+		pclose(pipe);
+		return buffer;
+	#endif
+}
+
 long count_lines(const char *buffer) {
 	if (buffer[0] == '\0') return 0; // Fix: empty buffer = 0 lines
 	// The final (or potentially only) line may be \0 terminated.
@@ -79,11 +115,6 @@ void precheck_arguments(int argc, char *argv[]) {
 		printf("TypeBelow: Version %s\n", PROGRAM_VERSION);
 		exit(EXIT_SUCCESS);
 	}
-	if (argc < 2) {
-		fprintf(stderr, "Error: Missing filename or '-'.\n");
-		fprintf(stderr, "Tip: Try '%s --help' for usage info.\n", argv[0]);
-		exit(EXIT_FAILURE);
-	}
 	if (argc > 3) {
 		fprintf(stderr, "Too many arguments provided.\n");
 		echo_usage(argv[0]);
@@ -92,6 +123,7 @@ void precheck_arguments(int argc, char *argv[]) {
 }
 
 enum InputMode determine_input_mode(const char *file_arg) {
+	if (!file_arg) return INPUT_MODE_CLIPBOARD;
 	return strcmp(file_arg, "-") == STRING_MATCH ? INPUT_MODE_PIPE : INPUT_MODE_FILE;
 }
 
