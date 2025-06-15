@@ -1,4 +1,4 @@
-PROGRAM_VERSION = 1.1.0
+PROGRAM_VERSION = 1.1.1
 
 # === Project structure ===
 SRC_DIR = src
@@ -109,8 +109,8 @@ dist: clean all $(VERSION_H) | $(DST_DIR)
 # GitHub release automation
 NOTE ?= "Automated release of version $(PROGRAM_VERSION)"
 release: dist
-	gh release create $(PROGRAM_VERSION) \
-		--title "Release $(PROGRAM_VERSION)" \
+	gh release create v$(PROGRAM_VERSION) \
+		--title "Release v$(PROGRAM_VERSION)" \
 		--notes "$(NOTE)" \
 		$(wildcard $(DST_DIR)/*)
 

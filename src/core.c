@@ -8,6 +8,7 @@ void echo_usage(const char *prog_name) {
 		"  %s - [starting_line]\n\n"
 		"Options:\n"
 		"  -h, --help          Show this help message and exit.\n\n"
+		"  -v, --version       Show program version and exit.\n\n"
 		"Examples:\n"
 		"  %s myfile.txt            # Read from file starting at line 1\n"
 		"  %s myfile.txt 10         # Start at line 10\n"
