@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
 		if (fgets(user_input, sizeof(user_input), user_input_stream)) {
 			user_input[strcspn(user_input, "\n")] = '\0';
 			
-			// Truncate to match printed line length
-			if (strlen(user_input) > printed_line_len) {
+			size_t user_len = strlen(user_input);
+			if (user_len > printed_line_len) {
 				user_input[printed_line_len] = '\0';
 			}
 		} else {
