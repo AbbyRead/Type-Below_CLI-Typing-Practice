@@ -11,7 +11,9 @@
 static inline int get_terminal_height() {
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
-    return csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+	int height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+	if (height <= 0) height = 24;
+    return height;
 }
 static inline void move_cursor_up(int lines) {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -30,7 +32,9 @@ static inline void move_cursor_up(int lines) {
 static inline int get_terminal_height() {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    return w.ws_row;
+	int height = w.ws_row;
+	if (height <= 0) height = 24;
+    return height;
 }
 static inline void move_cursor_up(int lines) {
     printf("\033[%dA", lines);
