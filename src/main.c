@@ -48,10 +48,10 @@ int main(int argc, char *argv[]) {
 
 	long total_lines = count_lines(buffer);
 	if (buffer[0] == '\0') {
-    fprintf(stderr, "Error: Input is empty.\n");
-    free(buffer);
-    fclose(user_input_stream);
-    return EXIT_FAILURE;
+	fprintf(stderr, "Error: Input is empty.\n");
+	free(buffer);
+	fclose(user_input_stream);
+	return EXIT_FAILURE;
 }
 	long starting_line = 1;
 	unsigned long offset = 0;
@@ -103,15 +103,15 @@ int main(int argc, char *argv[]) {
 		} else {
 			switch (mode) {
 				case INPUT_MODE_PIPE:
-				printf("Program ended.  Example resume command:\n");
-				printf("cat original.txt | ");
-				break;
+					printf("Program ended.  Example resume command:\n");
+					printf("cat original.txt | ");
+					break;
 				case INPUT_MODE_FILE:
-				printf("Program ended on line %ld of %ld\n", line, total_lines);
-				printf("To continue from this point next time use the command:\n");
-				break;
+					printf("Program ended on line %ld of %ld\n", line, total_lines);
+					printf("To continue from this point next time use the command:\n");
+					break;
 				default:
-				break;
+					break;
 			}
 			// Common ending to both resume messages:
 			printf("%s %s %ld\n", argv[0], argv[1], line);
