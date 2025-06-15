@@ -80,63 +80,51 @@ int main(int argc, char *argv[]) {
 		size_t printed_line_len = 0;
 		const char *line_start = &buffer[line_offset];
 		const char *line_end = strchr(line_start, '\n');
-		if (line_end) {
-			printed_line_len = line_end - line_start;
-		} else {
-			printed_line_len = strlen(line_start); // fallback: no newline
-		}
-		
+		printed_line_len = line_end ? (line_end - line_start) : strlen(line_start);
+
 		if (last_line) printf("\n");
-		
-		// Position the text input line
+
 		int height = get_terminal_height();
-		float padding_ratio = 0.4;
-		int pad_lines = (int)(height * padding_ratio);
-		for (int i = 0; i < pad_lines; i++) {
-			printf("\n");
-		}
+		int pad_lines = (int)(height * 0.4f);
+		for (int i = 0; i < pad_lines; i++) printf("\n");
 		move_cursor_up(pad_lines);
 		fflush(stdout);
-		
-		size_t input_capacity = printed_line_len + 2; // +1 for newline, +1 for null terminator
+
+		size_t input_capacity = printed_line_len + 2;
 		user_input = malloc(input_capacity);
 		if (!user_input) {
 			fprintf(stderr, "Error: Failed to allocate memory for user input.\n");
-			free(buffer);
-			fclose(user_input_stream);
-			return EXIT_FAILURE;
+			goto cleanup;
 		}
 
-		if (fgets(user_input, input_capacity, user_input_stream)) {
-			user_input[strcspn(user_input, "\n")] = '\0'; // strip newline if present
-		} else {
-			// End-of-input or error
+		if (!fgets(user_input, input_capacity, user_input_stream)) {
+			printf("\n");
 			switch (mode) {
 				case INPUT_MODE_PIPE:
-					printf("Program ended.  Example resume command:\n");
+					printf("Program ended. Example resume command:\n");
 					printf("cat original.txt | ");
 					break;
 				case INPUT_MODE_FILE:
 					printf("Program ended on line %ld of %ld\n", line, total_lines);
 					printf("To continue from this point next time use the command:\n");
 					break;
-				default:
-					break;
+				default: break;
 			}
 			printf("%s %s %ld\n", argv[0], argv[1], line);
-			free(user_input);
-			free(buffer);
-			fclose(user_input_stream);
-			return EXIT_FAILURE;
+			goto cleanup;
 		}
 
+		user_input[strcspn(user_input, "\n")] = '\0'; // Strip newline
 		printf("\n");
+
 		free(user_input);
-		user_input = NULL; // reset for next loop
+		user_input = NULL;
 		line++;
 	}
 
-	free(buffer);
-	fclose(user_input_stream);
-	return 0;
+	cleanup:
+		if (user_input) free(user_input);
+		if (buffer) free(buffer);
+		if (user_input_stream) fclose(user_input_stream);
+		return 0;
 }
