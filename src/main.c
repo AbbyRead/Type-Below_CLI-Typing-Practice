@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		if (!fgets(user_input, input_capacity, user_input_stream)) {
-			printf("\n");
+			printf("\n"); // Extra newline for cleanliness
 			switch (mode) {
 				case INPUT_MODE_PIPE:
 					printf("Program ended. Example resume command:\n");
