@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 		move_cursor_up(pad_lines);
 		fflush(stdout);
 
-		size_t input_capacity = printed_line_len + 2;
+		size_t input_capacity = printed_line_len + 64; // Allow extra typing room
 		user_input = malloc(input_capacity);
 		if (!user_input) {
 			fprintf(stderr, "Error: Failed to allocate memory for user input.\n");
