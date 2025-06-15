@@ -22,7 +22,14 @@ char *copy_to_buffer(FILE *stream) {
 
 	while (1) {
 		int c = getc(stream);
-		if (c == EOF || ferror(stream)) break;
+		if (c == EOF) {
+			if (ferror(stream)) {
+				perror("Error reading input");
+				free(buffer);
+				return NULL;
+			}
+			break;
+		}
 		buffer[byte_count++] = (char)c;
 		if (byte_count == bytes_available) {
 			bytes_available += CHUNK_SIZE;
@@ -51,7 +58,7 @@ char *copy_to_buffer(FILE *stream) {
 
 long count_lines(const char *buffer) {
 	if (buffer[0] == '\0') return 0; // Fix: empty buffer = 0 lines
-
+	// The final (or potentially only) line may be \0 terminated.
 	long lines = 1;
 	while (*buffer != '\0') {
 		if (*buffer++ == '\n') lines++;
