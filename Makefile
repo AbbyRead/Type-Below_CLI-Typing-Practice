@@ -86,6 +86,20 @@ debug: CFLAGS = $(DEBUG_CFLAGS)
 debug: LDFLAGS = $(DEBUG_LDFLAGS)
 debug: clean all
 
+# === Testing ===
+
+TEST_SRC = test_all.c $(wildcard tests/*.c)
+TEST_BIN = bin/test_all
+
+# Exclude src/main.c from tests
+TEST_SRCS_WITH_LIB := $(filter-out src/main.c, $(SRCS))
+
+test: $(TEST_BIN)
+	@./$(TEST_BIN)
+
+$(TEST_BIN): $(TEST_SRC) $(TEST_SRCS_WITH_LIB) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^
+
 # === Build rules ===
 
 # Native binaries
