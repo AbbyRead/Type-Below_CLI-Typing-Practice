@@ -1,5 +1,5 @@
 # Makefile for cross-platform build: macOS (universal), Linux, Windows (x86_64, i686, arm64)
-# Includes debug builds, auto dependency generation, distribution, testing, and release automation.
+# Includes debug builds, distribution, testing, and release automation.
 
 PROGRAM_VERSION ?= E0.0.0
 
@@ -15,13 +15,14 @@ LINUX_BIN_DIR := $(BIN_DIR)/linux
 WIN_BIN_DIR   := $(BIN_DIR)/windows
 
 VERSION_H     := $(INCLUDE_DIR)/version.h
+VPATH := $(SRC_DIR):$(SRC_DIR)/platform
 
 # === Compiler Setup ===
 CC        ?= clang
-CFLAGS    := -Wall -Wextra -pedantic -O2 -I$(INCLUDE_DIR) -arch x86_64 -arch arm64 -MMD -MF
+CFLAGS    := -Wall -Wextra -pedantic -O2 -I$(INCLUDE_DIR) -arch x86_64 -arch arm64
 LDFLAGS   := -arch x86_64 -arch arm64
 
-DEBUG_CFLAGS := -Wall -Wextra -pedantic -O0 -g -I$(INCLUDE_DIR) -arch x86_64 -arch arm64 -MMD -MF
+DEBUG_CFLAGS := -Wall -Wextra -pedantic -O0 -g -I$(INCLUDE_DIR) -arch x86_64 -arch arm64
 DEBUG_LDFLAGS := -arch x86_64 -arch arm64
 
 # === Cross-compilation Setup (Windows) ===
@@ -49,19 +50,14 @@ WIN_LDFLAGS_ARM64  := $(WIN_LDFLAGS_COMMON)
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 
 # Filter platform-specific source files:
-MACOS_SRCS := $(ALL_SRCS) $(SRC_DIR)/platform/os_mac.c
-WIN_SRCS   := $(ALL_SRCS) $(SRC_DIR)/platform/os_win.c
-LINUX_SRCS := $(ALL_SRCS) $(SRC_DIR)/platform/os_linux.c
+MACOS_SRCS := $(SRCS) $(SRC_DIR)/platform/os_mac.c
+WIN_SRCS   := $(SRCS) $(SRC_DIR)/platform/os_win.c
+LINUX_SRCS := $(SRCS) $(SRC_DIR)/platform/os_linux.c
 
 # === Object Files ===
 MACOS_OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(MACOS_SRCS))
 WIN_OBJS   := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(WIN_SRCS))
 LINUX_OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(LINUX_SRCS))
-
-# Dependency files for automatic header tracking
-MACOS_DEPS := $(MACOS_OBJS:.o=.d)
-WIN_DEPS   := $(WIN_OBJS:.o=.d)
-LINUX_DEPS := $(LINUX_OBJS:.o=.d)
 
 # === Detect Native OS ===
 ifeq ($(origin OS_OVERRIDE), undefined)
@@ -124,7 +120,7 @@ $(MACOS_BIN_DIR)/typebelow: $(MACOS_OBJS) | $(MACOS_BIN_DIR)
 # --- Linux ---
 linux: dirs version_header $(LINUX_BIN_DIR)/typebelow
 
-debug-linux: CFLAGS := -Wall -Wextra -pedantic -O0 -g -I$(INCLUDE_DIR) -MMD -MF
+debug-linux: CFLAGS := -Wall -Wextra -pedantic -O0 -g -I$(INCLUDE_DIR)
 debug-linux: clean linux
 
 $(LINUX_BIN_DIR)/typebelow: $(LINUX_OBJS) | $(LINUX_BIN_DIR)
@@ -152,24 +148,18 @@ windows-build: dirs
 	echo "Building $$outfile"; \
 	$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -o $$outfile $(WIN_SRCS)
 
-# === Object file compilation rules with auto dependencies ===
-# macOS objects
-$(OBJ_DIR)/macos_%.o: $(SRC_DIR)/%.c | dirs
+# === Object file compilation rules ===
+$(MACOS_OBJS): $(SRC_DIR)/%.c | dirs
 	@echo "Compiling $< for macOS"
 	$(CC) $(CFLAGS) -c $< -o $@
--include $(OBJ_DIR)/macos_%.d
 
-# Linux objects
-$(OBJ_DIR)/linux_%.o: $(SRC_DIR)/%.c | dirs
+$(LINUX_OBJS): $(SRC_DIR)/%.c | dirs
 	@echo "Compiling $< for Linux"
 	$(CC) $(CFLAGS) -c $< -o $@
--include $(OBJ_DIR)/linux_%.d
 
-# Windows objects
-$(OBJ_DIR)/win_%.o: $(SRC_DIR)/%.c | dirs
+$(WIN_OBJS): $(SRC_DIR)/%.c | dirs
 	@echo "Compiling $< for Windows"
 	$(WIN_CC) $(WIN_CFLAGS) -c $< -o $@
--include $(OBJ_DIR)/win_%.d
 
 # === Distribution ===
 dist: clean all | dirs
@@ -247,4 +237,3 @@ help:
 	@echo "  make test              Build and run tests"
 	@echo "  make clean             Remove all build artifacts"
 	@echo "  make help              Show this help message"
-
