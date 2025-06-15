@@ -48,11 +48,11 @@ int main(int argc, char *argv[]) {
 
 	long total_lines = count_lines(buffer);
 	if (buffer[0] == '\0') {
-	fprintf(stderr, "Error: Input is empty.\n");
-	free(buffer);
-	fclose(user_input_stream);
-	return EXIT_FAILURE;
-}
+		fprintf(stderr, "Error: Input is empty.\n");
+		free(buffer);
+		fclose(user_input_stream);
+		return EXIT_FAILURE;
+	}
 	long starting_line = 1;
 	unsigned long offset = 0;
 	if (argc == 3) {
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 	const char *source_label = (mode == INPUT_MODE_PIPE) ? "stdin" : argv[1];
 	printf("Reading from '%s', starting from line %ld of %ld.\n", source_label, starting_line, total_lines);
 	long line = starting_line;
-	char user_input[1024];
+	char *user_input = NULL;
 	size_t buffer_length = strlen(buffer);
 	
 	while (line < total_lines + 1) {
@@ -92,14 +92,19 @@ int main(int argc, char *argv[]) {
 		move_cursor_up(pad_lines);
 		fflush(stdout);
 		
-		if (fgets(user_input, sizeof(user_input), user_input_stream)) {
-			user_input[strcspn(user_input, "\n")] = '\0';
-			
-			size_t user_len = strlen(user_input);
-			if (user_len > printed_line_len) {
-				user_input[printed_line_len] = '\0';
-			}
+		size_t input_capacity = printed_line_len + 2; // +1 for newline, +1 for null terminator
+		user_input = malloc(input_capacity);
+		if (!user_input) {
+			fprintf(stderr, "Error: Failed to allocate memory for user input.\n");
+			free(buffer);
+			fclose(user_input_stream);
+			return EXIT_FAILURE;
+		}
+
+		if (fgets(user_input, input_capacity, user_input_stream)) {
+			user_input[strcspn(user_input, "\n")] = '\0'; // strip newline if present
 		} else {
+			// End-of-input or error
 			switch (mode) {
 				case INPUT_MODE_PIPE:
 					printf("Program ended.  Example resume command:\n");
@@ -112,13 +117,16 @@ int main(int argc, char *argv[]) {
 				default:
 					break;
 			}
-			// Common ending to both resume messages:
 			printf("%s %s %ld\n", argv[0], argv[1], line);
+			free(user_input);
 			free(buffer);
 			fclose(user_input_stream);
 			return EXIT_FAILURE;
 		}
+
 		printf("\n");
+		free(user_input);
+		user_input = NULL; // reset for next loop
 		line++;
 	}
 
