@@ -1,11 +1,8 @@
 # TypeBelow
 
-This program reads lines from a specified text file and shows them one by one in the terminal.  
-You follow along by typing each line and pressing Enter before continuing.
-My focus here is to make something that fits my own use case.
+This program reads lines from a specified text source and expects that you will follow-along below it by typing the same text.
 
 ## Features
-- Shows one line at a time from the input file or from piped-in text.
 - Accepts an optional starting line number to begin practicing from any line.
 - Accepts negative starting line number to offset from the end of the source text.
 - Reports ending line number to let you easily start where you left off next time.
