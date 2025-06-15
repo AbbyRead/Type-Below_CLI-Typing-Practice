@@ -17,12 +17,18 @@ WIN_BIN_DIR   := $(BIN_DIR)/windows
 VERSION_H     := $(INCLUDE_DIR)/version.h
 VPATH := $(SRC_DIR):$(SRC_DIR)/platform
 
+.PHONY: all debug-macos debug-linux debug-windows \
+        windows-x86_64 windows-i686 windows-arm64 \
+        version_header test dist release check-tools \
+        $(MACOS_BIN_DIR) $(LINUX_BIN_DIR) $(WIN_BIN_DIR)
+
 # === Compiler Setup ===
 CC        ?= clang
-CFLAGS    := -Wall -Wextra -pedantic -O2 -I$(INCLUDE_DIR) -arch x86_64 -arch arm64
+CPPFLAGS := -I$(INCLUDE_DIR)
+CFLAGS   := -Wall -Wextra -pedantic -O2
 LDFLAGS   := -arch x86_64 -arch arm64
 
-DEBUG_CFLAGS := -Wall -Wextra -pedantic -O0 -g -I$(INCLUDE_DIR) -arch x86_64 -arch arm64
+DEBUG_CFLAGS := -Wall -Wextra -pedantic -O0 -g
 DEBUG_LDFLAGS := -arch x86_64 -arch arm64
 
 # === Cross-compilation Setup (Windows) ===
@@ -47,12 +53,13 @@ WIN_LDFLAGS_I686   := $(WIN_LDFLAGS_COMMON)
 WIN_LDFLAGS_ARM64  := $(WIN_LDFLAGS_COMMON)
 
 # === Source Files ===
-SRCS := $(wildcard $(SRC_DIR)/*.c)
+ALL_SRCS := $(wildcard $(SRC_DIR)/*.c)
+SRCS := $(filter-out $(SRC_DIR)/main.c, $(ALL_SRCS))
 
 # Filter platform-specific source files:
-MACOS_SRCS := $(SRCS) $(SRC_DIR)/platform/os_mac.c
-WIN_SRCS   := $(SRCS) $(SRC_DIR)/platform/os_win.c
-LINUX_SRCS := $(SRCS) $(SRC_DIR)/platform/os_linux.c
+MACOS_SRCS := $(SRCS) $(SRC_DIR)/platform/os_mac.c $(SRC_DIR)/main.c
+WIN_SRCS   := $(SRCS) $(SRC_DIR)/platform/os_win.c $(SRC_DIR)/main.c
+LINUX_SRCS := $(SRCS) $(SRC_DIR)/platform/os_linux.c $(SRC_DIR)/main.c
 
 # === Object Files ===
 MACOS_OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(MACOS_SRCS))
@@ -86,12 +93,19 @@ WIN_CFLAGS_ARM64  := $(WIN_CFLAGS_ARM64)  -O0 -g
 endif
 
 # === Directory creation (grouped to reduce shell invocations) ===
-.PHONY: dirs
 dirs:
-	@mkdir -p $(OBJ_DIR) $(BIN_DIR) $(MACOS_BIN_DIR) $(WIN_BIN_DIR) $(LINUX_BIN_DIR) $(DST_DIR)
+	@mkdir -p $(BIN_DIR) $(DST_DIR)
+
+$(MACOS_BIN_DIR):
+	@mkdir -p $@
+
+$(LINUX_BIN_DIR):
+	@mkdir -p $@
+
+$(WIN_BIN_DIR):
+	@mkdir -p $@
 
 # === Version Header ===
-.PHONY: version_header
 version_header: | $(INCLUDE_DIR)
 	@echo "Generating version header $(VERSION_H)"
 	@echo '#ifndef VERSION_H' > $(VERSION_H)
@@ -102,12 +116,10 @@ version_header: | $(INCLUDE_DIR)
 	@echo '#endif' >> $(VERSION_H)
 
 # === Build Targets ===
-.PHONY: all macos linux windows windows-x86_64 windows-i686 windows-arm64 debug-macos debug-linux debug-windows dist release clean test help
-
 all: macos linux windows
 
 # --- macOS ---
-macos: dirs version_header $(MACOS_BIN_DIR)/typebelow
+macos: dirs version_header $(MACOS_BIN_DIR) $(MACOS_BIN_DIR)/typebelow
 
 debug-macos: CFLAGS := $(DEBUG_CFLAGS)
 debug-macos: LDFLAGS := $(DEBUG_LDFLAGS)
@@ -142,24 +154,16 @@ windows-arm64:
 debug-windows: clean
 	$(MAKE) windows DEBUG=1
 
-.PHONY: windows-build
 windows-build: dirs
 	@outfile="$(WIN_BIN_ARCH)/$(WIN_ARCH).exe"; \
 	echo "Building $$outfile"; \
 	$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -o $$outfile $(WIN_SRCS)
 
 # === Object file compilation rules ===
-$(MACOS_OBJS): $(SRC_DIR)/%.c | dirs
-	@echo "Compiling $< for macOS"
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(LINUX_OBJS): $(SRC_DIR)/%.c | dirs
-	@echo "Compiling $< for Linux"
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(WIN_OBJS): $(SRC_DIR)/%.c | dirs
-	@echo "Compiling $< for Windows"
-	$(WIN_CC) $(WIN_CFLAGS) -c $< -o $@
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@echo "Compiling $< -> $@"
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # === Distribution ===
 dist: clean all | dirs
@@ -193,7 +197,6 @@ release: check-tools dist
 		$(wildcard $(DST_DIR)/*)
 
 # === Check required tools ===
-.PHONY: check-tools
 check-tools:
 	@command -v clang >/dev/null || (echo "clang not found. Please install clang." && exit 1)
 	@command -v lld >/dev/null || (echo "lld linker not found. Please install lld." && exit 1)
@@ -207,18 +210,16 @@ test: dirs $(TEST_BIN)
 	@echo "Running tests"
 	@./$(TEST_BIN)
 
-$(TEST_BIN): $(TEST_SRC) $(filter-out src/main.c, $(ALL_SRCS)) | dirs
+$(TEST_BIN): $(TEST_SRC) $(SRCS) | dirs
 	@echo "Compiling test binary"
 	$(CC) $(CFLAGS) -o $@ $^
 
 # === Clean ===
-.PHONY: clean
 clean:
 	@echo "Cleaning build artifacts"
 	rm -rf $(OBJ_DIR) $(BIN_DIR) $(DST_DIR)
 
 # === Help ===
-.PHONY: help
 help:
 	@echo "Available targets:"
 	@echo "  make                   Build native binary ($(DEFAULT_TARGET))"
