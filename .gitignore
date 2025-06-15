@@ -11,6 +11,7 @@
 *.exe
 *.elf
 *.gch
+include/version.h
 
 # Build folders
 obj/
