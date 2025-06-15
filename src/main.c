@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 				return EXIT_FAILURE;
 			}
 			source_text = stdin;
-			printf("Input mode: Piped input (stdin)\n");
+			// printf("Input mode: Piped input (stdin)\n");
 			break;
 		case INPUT_MODE_FILE:
 			source_text = fopen(argv[1], "r");
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr, "Error opening file '%s': %s\n", argv[1], strerror(errno));
 				return EXIT_FAILURE;
 			}
-			printf("Input mode: File\n");
+			// printf("Input mode: File\n");
 			break;
 		default:
 			fprintf(stderr, "Unknown input mode.\n");
@@ -103,8 +103,8 @@ int main(int argc, char *argv[]) {
 		} else {
 			switch (mode) {
 				case INPUT_MODE_PIPE:
-				printf("# Example resume command:\n");
-				printf("cat original.txt | %s - %ld\n", argv[0], line);
+				printf("Program ended.  Example resume command:\n");
+				printf("cat original.txt | ");
 				break;
 				case INPUT_MODE_FILE:
 				printf("Program ended on line %ld of %ld\n", line, total_lines);
@@ -113,6 +113,7 @@ int main(int argc, char *argv[]) {
 				default:
 				break;
 			}
+			// Common ending to both resume messages:
 			printf("%s %s %ld\n", argv[0], argv[1], line);
 			free(buffer);
 			fclose(user_input_stream);

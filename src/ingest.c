@@ -44,7 +44,7 @@ char *copy_to_buffer(FILE *stream) {
 		return NULL;
 	}
 
-	printf("Local buffer allocated bytes: %zu\n", byte_count + 1);
+	// printf("Local buffer allocated bytes: %zu\n", byte_count + 1);
 
 	return final_buffer;
 }
