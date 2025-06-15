@@ -9,11 +9,12 @@
 #define fileno _fileno
 #define USER_INPUT_DEVICE "CON"
 static inline int get_terminal_height() {
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	if (!GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
+		return 24;
+	}
 	int height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-	if (height <= 0) height = 24;
-    return height;
+	return (height > 0) ? height : 24;
 }
 static inline void move_cursor_up(int lines) {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
