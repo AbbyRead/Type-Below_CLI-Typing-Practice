@@ -46,9 +46,15 @@ WIN_LDFLAGS_X86_64 = $(WIN_LDFLAGS_COMMON)
 WIN_LDFLAGS_I686   = $(WIN_LDFLAGS_COMMON)
 WIN_LDFLAGS_ARM64  = $(WIN_LDFLAGS_COMMON)
 
-# === Source and binary derivations ===
-SRCS := $(wildcard $(SRC_DIR)/*.c)
-OBJS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
+# === Source files ===
+ALL_SRCS := $(wildcard $(SRC_DIR)/*.c)
+
+# Filter platform-specific source files
+MACOS_SRCS := $(filter-out $(SRC_DIR)/platform_win.c, $(ALL_SRCS))
+WIN_SRCS := $(filter-out $(SRC_DIR)/platform_macos.c, $(ALL_SRCS))
+
+# === Object files for macOS ===
+OBJS := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(MACOS_SRCS))
 
 # === Default target ===
 
@@ -72,9 +78,9 @@ windows: $(WIN_BIN_DIR)
 	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_I686)" WIN_LDFLAGS="$(WIN_LDFLAGS_I686)" WIN_ARCH=x86_32 WIN_BIN_ARCH=$(WIN_BIN_DIR)
 	$(MAKE) windows-build WIN_CC=$(WIN_CC) WIN_CFLAGS="$(WIN_CFLAGS_ARM64)" WIN_LDFLAGS="$(WIN_LDFLAGS_ARM64)" WIN_ARCH=arm64 WIN_BIN_ARCH=$(WIN_BIN_DIR)
 
-windows-build: $(SRCS)
+windows-build:
 	@outfile="$(WIN_BIN_ARCH)/$(WIN_ARCH).exe"; \
-	$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) $(LIBS) -o $$outfile $(SRCS)
+	$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) $(LIBS) -o $$outfile $(WIN_SRCS)
 
 debug: CFLAGS = $(DEBUG_CFLAGS)
 debug: LDFLAGS = $(DEBUG_LDFLAGS)
