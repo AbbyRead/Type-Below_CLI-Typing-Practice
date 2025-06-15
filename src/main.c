@@ -59,8 +59,8 @@ int main(int argc, char *argv[]) {
 		starting_line = validate_line_number(argv[2], total_lines);
 		set_starting_offset(buffer, &offset, starting_line);
 	}
-
-	printf("Reading from '%s', starting from line %ld of %ld.\n", argv[1], starting_line, total_lines);
+	const char *source_label = (mode == INPUT_MODE_PIPE) ? "stdin" : argv[1];
+	printf("Reading from '%s', starting from line %ld of %ld.\n", source_label, starting_line, total_lines);
 	long line = starting_line;
 	char user_input[1024];
 	size_t buffer_length = strlen(buffer);
@@ -83,8 +83,18 @@ int main(int argc, char *argv[]) {
 		if (fgets(user_input, sizeof(user_input), user_input_stream)) {
 			user_input[strcspn(user_input, "\n")] = '\0';
 		} else {
-			printf("Program ended on line %ld of %ld\n", line, total_lines);
-			printf("To continue from this point next time use the command:\n");
+			switch (mode) {
+				case INPUT_MODE_PIPE:
+					printf("# Example resume command:\n");
+					printf("cat original.txt | %s - %ld\n", argv[0], line);
+					break;
+				case INPUT_MODE_FILE:
+					printf("Program ended on line %ld of %ld\n", line, total_lines);
+					printf("To continue from this point next time use the command:\n");
+					break;
+				default:
+					break;
+			}
 			printf("%s %s %ld\n", argv[0], argv[1], line);
 			free(buffer);
 			fclose(user_input_stream);
