@@ -11,11 +11,17 @@ int main(int argc, char *argv[]) {
 
 	switch (mode) {
 		case INPUT_MODE_PIPE:
-			if (isatty(fileno(stdin))) {
-				fprintf(stderr, "Error: No piped-in text detected on stdin.\n");
-				return EXIT_FAILURE;
-			}
-			source_text = stdin;
+			#ifdef _WIN32
+				// On Windows, _isatty() often returns true even with piped input,
+				// so we skip this check and assume the user knows what they're doing.
+				source_text = stdin;
+			#else
+				if (isatty(fileno(stdin))) {
+					fprintf(stderr, "Error: No piped-in text detected on stdin.\n");
+					return EXIT_FAILURE;
+				}
+				source_text = stdin;
+			#endif
 			// printf("Input mode: Piped input (stdin)\n");
 			break;
 		case INPUT_MODE_FILE:
