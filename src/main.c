@@ -86,6 +86,7 @@ int main(int argc, char *argv[]) {
 
 		int height = get_terminal_height();
 		int pad_lines = (int)(height * 0.4f);
+		if (pad_lines < 1) pad_lines = 1;
 		for (int i = 0; i < pad_lines; i++) printf("\n");
 		move_cursor_up(pad_lines);
 		fflush(stdout);
