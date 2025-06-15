@@ -58,6 +58,16 @@ long count_lines(const char *buffer) {
 }
 
 void precheck_arguments(int argc, char *argv[]) {
+	if (argc >= 2 && 
+		(strcmp(argv[1], "--help") == STRING_MATCH || strcmp(argv[1], "-h") == STRING_MATCH)) {
+		echo_usage(argv[0]);
+		exit(EXIT_SUCCESS);
+	}
+	if (argc >= 2 && 
+		(strcmp(argv[1], "--version") == STRING_MATCH || strcmp(argv[1], "-v") == STRING_MATCH)) {
+		printf("TypeBelow: Version %s\n", PROGRAM_VERSION);
+		exit(EXIT_SUCCESS);
+	}
 	if (argc < 2) {
 		fprintf(stderr, "Error: Missing filename or '-'.\n");
 		fprintf(stderr, "Tip: Try '%s --help' for usage info.\n", argv[0]);
@@ -67,14 +77,6 @@ void precheck_arguments(int argc, char *argv[]) {
 		fprintf(stderr, "Too many arguments provided.\n");
 		echo_usage(argv[0]);
 		exit(EXIT_FAILURE);
-	}
-	if (strcmp(argv[1], "--help") == STRING_MATCH || strcmp(argv[1], "-h") == STRING_MATCH) {
-		echo_usage(argv[0]);
-		exit(EXIT_SUCCESS);
-	}
-	if (strcmp(argv[1], "--version") == STRING_MATCH || strcmp(argv[1], "-v") == STRING_MATCH) {
-		printf("TypeBelow: Version %s\n", PROGRAM_VERSION);
-		exit(EXIT_SUCCESS);
 	}
 }
 
