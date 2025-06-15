@@ -46,17 +46,17 @@ WIN_LDFLAGS_I686   := $(WIN_LDFLAGS_COMMON)
 WIN_LDFLAGS_ARM64  := $(WIN_LDFLAGS_COMMON)
 
 # === Source Files ===
-ALL_SRCS := $(wildcard $(SRC_DIR)/*.c)
+SRCS := $(wildcard $(SRC_DIR)/*.c)
 
 # Filter platform-specific source files:
-MACOS_SRCS := $(filter-out $(SRC_DIR)/platform_win.c, $(ALL_SRCS))
-WIN_SRCS   := $(filter-out $(SRC_DIR)/platform_macos.c, $(ALL_SRCS))
-LINUX_SRCS := $(filter-out $(SRC_DIR)/platform_win.c $(SRC_DIR)/platform_macos.c, $(ALL_SRCS))
+MACOS_SRCS := $(ALL_SRCS) $(SRC_DIR)/platform/os_mac.c
+WIN_SRCS   := $(ALL_SRCS) $(SRC_DIR)/platform/os_win.c
+LINUX_SRCS := $(ALL_SRCS) $(SRC_DIR)/platform/os_linux.c
 
 # === Object Files ===
-MACOS_OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/macos_%.o,$(MACOS_SRCS))
-WIN_OBJS   := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/win_%.o,$(WIN_SRCS))
-LINUX_OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/linux_%.o,$(LINUX_SRCS))
+MACOS_OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(MACOS_SRCS))
+WIN_OBJS   := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(WIN_SRCS))
+LINUX_OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(LINUX_SRCS))
 
 # Dependency files for automatic header tracking
 MACOS_DEPS := $(MACOS_OBJS:.o=.d)
