@@ -12,10 +12,10 @@ VERSION_H = $(INCLUDE_DIR)/version.h
 
 # === Compiler setup ===
 CC = clang
-CFLAGS = -Wall -Wextra -O2 -Iinclude -arch x86_64 -arch arm64
+CFLAGS = -Wall -Wextra -pedantic -O2 -Iinclude -arch x86_64 -arch arm64
 LDFLAGS = -arch x86_64 -arch arm64
 
-DEBUG_CFLAGS = -Wall -Wextra -O0 -g -Iinclude -arch x86_64 -arch arm64
+DEBUG_CFLAGS = -Wall -Wextra -pedantic -O0 -g -Iinclude -arch x86_64 -arch arm64
 DEBUG_LDFLAGS = -arch x86_64 -arch arm64
 
 # === Cross-compilation setup (Windows) ===
