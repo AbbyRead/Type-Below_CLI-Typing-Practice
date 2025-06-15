@@ -50,12 +50,15 @@ char *copy_to_buffer(FILE *stream) {
 }
 
 long count_lines(const char *buffer) {
+	if (buffer[0] == '\0') return 0; // Fix: empty buffer = 0 lines
+
 	long lines = 1;
 	while (*buffer != '\0') {
 		if (*buffer++ == '\n') lines++;
 	}
 	return lines;
 }
+
 
 void precheck_arguments(int argc, char *argv[]) {
 	if (argc >= 2 && 
