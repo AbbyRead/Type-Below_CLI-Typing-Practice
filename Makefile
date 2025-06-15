@@ -1,4 +1,5 @@
 PROGRAM_VERSION = 1.2.0
+LIBS = -lclipboard
 
 # === Project structure ===
 SRC_DIR = src
@@ -21,6 +22,9 @@ DEBUG_LDFLAGS = -arch x86_64 -arch arm64
 # === Cross-compilation setup (Windows) ===
 LLVM_MINGW_ROOT = $(HOME)/toolchains/llvm-mingw
 WIN_CC = $(LLVM_MINGW_ROOT)/bin/clang
+
+# Library use
+CFLAGS += -Ilib/libclipboard/include
 
 # Targets per architecture
 WIN_TARGET_X86_64 = x86_64-w64-windows-gnu
@@ -74,7 +78,7 @@ windows: $(WIN_BIN_DIR)
 
 windows-build: $(SRCS)
 	@outfile="$(WIN_BIN_ARCH)/$(WIN_ARCH).exe"; \
-	$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) -o $$outfile $(SRCS)
+	$(WIN_CC) $(WIN_CFLAGS) -fuse-ld=lld $(WIN_LDFLAGS) $(LIBS) -o $$outfile $(SRCS)
 
 debug: CFLAGS = $(DEBUG_CFLAGS)
 debug: LDFLAGS = $(DEBUG_LDFLAGS)
@@ -84,7 +88,7 @@ debug: clean all
 
 # Native binaries
 $(MACOS_BIN_DIR)/typebelow: $(OBJS) | $(MACOS_BIN_DIR)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(LDFLAGS) $(LIBS) -o $@ $^
 
 # Object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)

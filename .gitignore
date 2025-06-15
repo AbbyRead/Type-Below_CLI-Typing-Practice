@@ -18,6 +18,9 @@ bin/
 dst/
 build/
 
+# Other unwanted folders
+bak/
+
 # Logs and temp files/folders
 *.log
 *.tmp
@@ -25,7 +28,6 @@ build/
 *.swp
 *.swo
 *.bak
-bak/
 
 # IDE/project files
 .vscode/
