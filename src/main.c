@@ -47,6 +47,12 @@ int main(int argc, char *argv[]) {
 	}
 
 	long total_lines = count_lines(buffer);
+	if (buffer[0] == '\0') {
+    fprintf(stderr, "Error: Input is empty.\n");
+    free(buffer);
+    fclose(user_input_stream);
+    return EXIT_FAILURE;
+}
 	long starting_line = 1;
 	unsigned long offset = 0;
 	if (argc == 3) {
